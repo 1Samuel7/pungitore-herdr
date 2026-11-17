@@ -70,8 +70,7 @@ The worktree rows depend on the space's checkout: a space whose folder is not a 
   │   │   ├── main (block, tab active, pane header herdr-pane 30px top, focus #3fae6a)
   │   │   └── panel (column, 368px, min 280, max 900, hidden)
   │   └── status (block, mod workspace-status, 28px)
-  ├── b037df0d… (block, mod pungitore-panel, 320px)
-  └── b9551b73… (block, mod zz-dump, 200px)
+  └── b037df0d… (block, mod pungitore-panel, 320px)
   ```
 
   `mods/herdr-spaces/main.js` opens it from a space row's right-click: `openOverlay({mod: "herdr-menu", kind: "popup", width: 230, height: 320, props: {tab: "space", target: {id}}})`.

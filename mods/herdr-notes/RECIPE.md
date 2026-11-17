@@ -58,8 +58,7 @@ Top to bottom:
   │   │   ├── main (block, tab active, pane header herdr-pane 30px top, focus #3fae6a)
   │   │   └── panel (column, 368px, min 280, max 900, hidden)
   │   └── status (block, mod workspace-status, 28px)
-  ├── b037df0d… (block, mod pungitore-panel, 320px)
-  └── b9551b73… (block, mod zz-dump, 200px)
+  └── b037df0d… (block, mod pungitore-panel, 320px)
   ```
 
   `mods/herdr-notes/mod.json` is `{ "place": "none", "title": "Notes" }` — `"place": "none"` means it appears only where a layout or another mod puts it, which here means only as an overlay. There is no `"overlay"` block in it (see **Watch out**).

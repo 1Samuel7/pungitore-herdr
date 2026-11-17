@@ -96,7 +96,7 @@ the content sits at the top of the frame.
     (a `column` 368px, min 280, max 900, `hidden: true`) whose `panel-body` is a `stack` of
     `files` and `changes` with `files` active; then `status` (block, `workspace-status`,
     28px).
-  - `pungitore-panel` (block, 320px) and `zz-dump` (block, 200px).
+  - `pungitore-panel` (block, 320px).
   - The panel is opened by the **`herdr-dock` block in that sidebar**, and by nothing else:
     the palette button opens it as a 250×170 popup with `props: {panel: "theme"}`, and the
     MiniMax bar opens it as a 320×220 popup with `props: {panel: "usage"}`.
@@ -179,9 +179,9 @@ the content sits at the top of the frame.
   268px `sidebar` column) or through `mod.open`. It also assumes `mmx` on the PATH of the
   machine the window is on — `exec` is called without `on`, so it always runs locally, never
   on the machine of a remote space.
-- **The layout it acts on is missing a mod:** `layouts/herdr.json` has a `zz-dump` block and
-  `mods/zz-dump` does not exist, so `herdr-app status` reports that error. It does not
-  affect the panel.
+- **The layout it acts on has one mod missing:** the `pungitore-panel` block points at
+  `mods/pungitore-panel`, which is in this repository. `herdr-app status` reports no
+  errors.
 
 **Done when:**
 

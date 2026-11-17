@@ -67,8 +67,7 @@ The six space colours are the ones the spaces list uses: `ansi6` `#22a99a`, `ans
   │   │   ├── main (block, tab active, pane header herdr-pane 30px top, focus #3fae6a)
   │   │   └── panel (column, 368px, min 280, max 900, hidden)
   │   └── status (block, mod workspace-status, 28px)
-  ├── b037df0d3652bd6c4a10ae48774b1a586 (block, mod pungitore-panel, 320px)
-  └── b9551b734870187e1a35348b0ac6321f0 (block, mod zz-dump, 200px)
+  └── b037df0d3652bd6c4a10ae48774b1a586 (block, mod pungitore-panel, 320px)
   ```
 
   The mod's block carries no props: `{ "mod": "herdr-agents" }`. `mod.json` is `{ "place": "none", "title": "Agents", "cloned_from": { "name": "agents", "version": "0.1.16" } }` — `"place": "none"` means it appears only where a layout puts it.
@@ -104,7 +103,8 @@ The six space colours are the ones the spaces list uses: `ansi6` `#22a99a`, `ans
 - **The mod writes while it renders.** `setAgentOrder` is called on every render, and `migratePins` can call `terminal.pin` from inside a render.
 - **The mod assumes other mods are installed**: `herdr-look` (which writes `space.colors` and `herdr.spaceIcons`) and the `workspace-chrome` SVGs. With no colours set, every space falls back to `ansi6` (`#22a99a`) and every row looks the same; with no icons set, no space icon is drawn.
 - **Sizes that matter.** The block's `min: 90`; a row is 30px, a sub-agent row 26px, a group header 30px, the header bar 41px. The list scrolls, so nothing is cut off, but only a handful of agents are visible at once in a 268px sidebar.
-- **The layout has one broken block next door.** `herdr-app status` reports `mod zz-dump: ... does not exist` — the last 200px block of `layouts/herdr.json` points at a mod that is not there. It is not this mod's doing, but it shows up in every check of the window.
+- **The layout next door is whole.** `herdr-app status` reports no errors: every block of
+  `layouts/herdr.json` points at a mod that is installed.
 - **`herdr-app check` passes** with no warnings: the mod runs no programs, calls `hc` not at all, and calls `terminal.pin` only when there are old pins to migrate.
 
 **Done when:**

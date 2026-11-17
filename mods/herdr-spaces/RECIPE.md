@@ -64,8 +64,7 @@ The colours are the space's own, and there are six of them: `ansi6` `#22a99a`, `
   │   │   ├── main (block, tab active, pane header herdr-pane 30px top, focus #3fae6a)
   │   │   └── panel (column, 368px, min 280, max 900, hidden)
   │   └── status (block, mod workspace-status, 28px)
-  ├── b037df0d… (block, mod pungitore-panel, 320px)
-  └── b9551b73… (block, mod zz-dump, 200px)
+  └── b037df0d… (block, mod pungitore-panel, 320px)
   ```
 
   The mod's block carries no props: `{ "mod": "herdr-spaces" }`. `mod.json` is `{ "place": "none", "title": "Spaces", "cloned_from": { "name": "spaces", "version": "0.1.16" } }` — `"place": "none"` means it appears only where a layout puts it.

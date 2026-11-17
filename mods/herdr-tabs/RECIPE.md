@@ -69,8 +69,7 @@ The active tab's fill is the space's own colour, darkened 40%. The six space col
   │   │           ├── files (block, mod files)
   │   │           └── changes (block, mod changes)
   │   └── status (block, mod workspace-status, 28px)
-  ├── b037df0d… (block, mod pungitore-panel, 320px)
-  └── b9551b73… (block, mod zz-dump, 200px)
+  └── b037df0d… (block, mod pungitore-panel, 320px)
   ```
 
   The block carries no props: `{ "mod": "herdr-tabs" }`. The mod is told nothing by the app; everything it shows it reads from `spaces()`, `panes()`, `layout()` and shared state.
@@ -104,7 +103,8 @@ The active tab's fill is the space's own colour, darkened 40%. The six space col
 - **The wheel gesture is not one notch per event on a touchpad.** A pixel-scrolling device needs 20px for the first tab and 60px for each one after, at most one every 100ms; a device that reports lines at all takes the line path, and a reported line count of zero does nothing.
 - **The names are cut off at 170px.** A long agent title is truncated with an ellipsis and there is no tooltip; the pane header shows the same title in full.
 - **The colour is darkened only if it is a 6-digit hex.** `deepen()` leaves anything else as it is, so a colour name that is neither one of the six nor a theme colour falls back to `theme().dim` and is used as it is.
-- **The layout's last block is missing on disk.** `zz-dump` is in `layouts/herdr.json` but not in `mods/`, so `herdr-app status` reports "mod zz-dump: … does not exist". It is the block to the right of the bar's far end, and the error is the layout's, not this mod's.
+- **The layout's blocks all point at mods that exist.** `layouts/herdr.json` ends with the
+  `pungitore-panel` block, and `herdr-app status` reports no errors.
 - **The repo copy and the installed copy drift apart.** The mod runs from `~/.config/herdr-app/mods/herdr-tabs`; the copy in `Projects/Herdr/mods/herdr-tabs` is the source it was written from. They are identical now.
 
 **Done when:**

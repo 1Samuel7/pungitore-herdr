@@ -69,7 +69,35 @@ function folder(cwd) {
 async function paintFrame(color) {
   const name = shared("layout") ?? "herdr";
   const path = `${home()}/.config/herdr-app/layouts/${name}.json`;
-  const tree = JSON.parse(await fs.readFile(path, "utf8"));
+  // The file belongs to the user as much as to us: they edit it by hand, and
+  // they drag the sizes around in it. So read it again before writing, and if
+  // it moved under us, paint the newer copy rather than the one we read —
+  // otherwise an edit made in the last moment is written over by the colour we
+  // were about to set. A file mid-edit does not parse: leave it alone and try
+  // again on the next tick rather than throwing.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let raw;
+    let tree;
+    try {
+      raw = await fs.readFile(path, "utf8");
+      tree = JSON.parse(raw);
+    } catch {
+      return false;
+    }
+    if (!paint(tree, color)) return false;
+    try {
+      if (await fs.readFile(path, "utf8") !== raw) continue;
+    } catch {
+      return false;
+    }
+    await fs.writeFile(path, `${JSON.stringify(tree, null, 2)}\n`);
+    return true;
+  }
+  return false;
+}
+
+// The colour on every pane frame in the tree. True if anything changed.
+function paint(tree, color) {
   let changed = false;
   const walk = (node) => {
     if (!node || typeof node !== "object") return;
@@ -88,9 +116,7 @@ async function paintFrame(color) {
     Object.values(node).forEach(walk);
   };
   walk(tree);
-  if (!changed) return false;
-  await fs.writeFile(path, `${JSON.stringify(tree, null, 2)}\n`);
-  return true;
+  return changed;
 }
 
 export default class Pane extends View {
