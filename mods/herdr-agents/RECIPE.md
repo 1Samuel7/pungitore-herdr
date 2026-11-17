@@ -4,9 +4,15 @@ The bottom half of the left sidebar: every agent Herdr knows about, one row each
 
 ![Agents](preview.png)
 
+> **This mod is not in the layout any more.** `layouts/herdr.json` no longer has an
+> `agents` block: the agents live under their space in the sidebar's spaces list
+> (`herdr-spaces`), which draws them itself. The mod is kept here, unchanged and
+> still working, in case the separate list is wanted back — put an `agents`
+> block in the layout's `sidebar-lists` column and it appears again.
+
 **What you see:**
 
-The block is the `agents` node of `layouts/herdr.json`: the lower of the two lists in the sidebar's `sidebar-lists` column — under `spaces`, above the 42px `dock` — with `weight: 1` and `min: 90`, so it takes half the space the two lists share inside the 268px `sidebar` column (the file's number; the person can drag the sidebar's outer edge wider or narrower, and the live width is whatever it has been dragged to). The mod paints its own background `theme().chrome` and puts a 1px `theme().border` hairline along its top edge. Body text is 13px.
+The block is the `agents` node of `layouts/herdr.json`: it used to be the lower of the two lists in the sidebar's `sidebar-lists` column — under `spaces`, above the 42px `dock` — with `weight: 1` and `min: 90`, so it took half the space the two lists shared inside the 268px `sidebar` column (the file's number; the person can drag the sidebar's outer edge wider or narrower, and the live width is whatever it has been dragged to). The mod paints its own background `theme().chrome` and puts a 1px `theme().border` hairline along its top edge. Body text is 13px.
 
 Top to bottom:
 

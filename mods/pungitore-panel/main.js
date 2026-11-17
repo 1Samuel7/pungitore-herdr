@@ -2,15 +2,16 @@
 //
 // Shows each space's repository the way the workflow sees it: the open to-dos
 // from its TODO.md, the branch it is on, and what the agents in it are doing.
-// The first open to-do is the next action, and clicking it starts a session
-// with that to-do as the agent's first message.
+// The first open to-do is the next action, and clicking it opens that to-do
+// in a dialog, where it can be changed before it is sent as the first message
+// of a new session.
 //
 // The repository's TODO.md is canonical. This panel only mirrors it, and it
 // reads it directly so that the mirror cannot drift from the truth.
 
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { spaces, agents, exec, theme, run, notify, checking } from "herdr";
+import { spaces, agents, exec, theme, openOverlay, checking } from "herdr";
 
 const MAX_TODOS = 6;
 const OPEN = /^\s*[-*]\s+\[ \]\s+(.*\S)\s*$/;
@@ -87,14 +88,17 @@ export default class Pungitore extends View {
     return agents().filter((a) => a.space === spaceId);
   }
 
-  startTask(space, text) {
-    run("tab.new", {
-      space: space.id,
-      folder: space.folder,
-      argv: ["claude"],
-      task: text,
+  // A to-do is a message to an agent, so it is not sent on a click: the
+  // to-do opens in a dialog where it can be read, changed, and only then
+  // sent as the first message of a new session.
+  confirm(space, text) {
+    openOverlay({
+      mod: "pungitore-confirm",
+      kind: "dialog",
+      width: 520,
+      height: 250,
+      props: { space: space.id, folder: space.folder, name: repoName(space.folder), text },
     });
-    notify({ title: space.name, body: text, level: "info" });
   }
 
   // The agent's status is one word — working, blocked, done, idle — and its
@@ -147,7 +151,7 @@ export default class Pungitore extends View {
             .rounded(5)
             .cursor_pointer()
             .hover((s) => s.bg(t.hover))
-            .on_click(() => this.startTask(space, text))
+            .on_click(() => this.confirm(space, text))
             .child(div().flex_none().text_size(11).text_color(index === 0 ? t.accent : t.dim).child(index === 0 ? "▶" : "·"))
             .child(
               div()

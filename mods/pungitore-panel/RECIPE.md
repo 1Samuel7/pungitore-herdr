@@ -3,8 +3,8 @@
 A permanent column on the right of the window that shows every repository you
 are working in the way the workflow sees it: the open to-dos from its
 `TODO.md`, the branch it is on, and what the agents in it are doing. The first
-open to-do is marked as the next action, and clicking a to-do starts a session
-with that to-do as the agent's first message.
+open to-do is marked as the next action, and clicking a to-do opens it in a
+dialog where it can be changed before it goes out as a session's first message.
 
 ![Pungitore panel](preview.png)
 
@@ -45,29 +45,31 @@ with that to-do as the agent's first message.
 - Every five seconds the panel re-reads every space that has a folder and
   redraws. A change to a `TODO.md` shows up within five seconds, with no
   reload and no keypress.
-- Clicking an open to-do starts a session on it: `tab.new` in that space, in
-  that repository's folder, running `claude`, with the to-do text as the
-  agent's first message. It asks nothing first — the click is the go. A
-  notification then names the space and repeats the to-do.
+- Clicking an open to-do does not start anything. It opens the
+  `pungitore-confirm` dialog — a 520x250 one, over the window — with the
+  to-do already written in the box, the repository's name in the line above it,
+  and a Send and a Cancel button. The text can be changed there; Enter sends
+  it, Esc or Cancel sends nothing. Sending it starts `claude` in that space,
+  in that repository's folder, with the text as the agent's first message, and
+  a notification names the repository and repeats the message.
 - The `▶` marks the first open to-do as the next action. It is a marker, not a
-  filter: clicking any to-do starts that one.
+  filter: clicking any to-do opens that one.
 - The panel reads what Herdr knows about the space: its folder, its branch and
   its agents. It never asks git anything itself.
 
 **Built from:**
 
-- The layout's node tree. `layouts/herdr.json` is a root row with four
-  children: the 268px `sidebar` column, the `work` column, then two blocks —
-  `pungitore-panel` at 320px and a 200px block this repository does not carry.
-  This mod is that 320px block, and it is the last one that draws; nothing else
-  in the tree depends on it.
+- The layout's node tree. `layouts/herdr.json` is a root row with three
+  children: the 268px `sidebar` column, the `work` column, and the 320px
+  `pungitore-panel` block. This mod is that block, and it is the last one that
+  draws; nothing else in the tree depends on it.
 - The mod itself: `mods/pungitore-panel/main.js`, default-exporting a class
   extending `View`, with `mod.json` as `{"place": "right", "size": 320}`.
 - The `herdr` functions it calls: `spaces()` for the spaces and their folders,
   `agents()` for the agents in them, `exec("cat", …)` to read each `TODO.md`,
-  `run("tab.new", …)` to start a session on a to-do, `notify()` to report it,
-  `theme()` for the colours, and `checking()` to stand down during
-  `herdr-app check`.
+  `openOverlay()` to open the confirmation dialog, `theme()` for the colours,
+  and `checking()` to stand down during `herdr-app check`.
+- The dialog it opens is a mod of its own: `mods/pungitore-confirm`.
 - Its art: none. Every mark is drawn — the `▶` and `·` markers are text, the
   status dot is a 7px rounded box, the repository name is text.
 
@@ -84,9 +86,13 @@ with that to-do as the agent's first message.
   `-` or `*` in front is not seen at all.
 - **Six to-dos is all you get.** The rest are counted in "+N more" and cannot
   be opened from here — go to the repository's `TODO.md`.
-- **Clicking a to-do starts `claude`**, not whatever agent the space uses, and
-  it starts it in the space's folder with the to-do as the first message. There
-  is no confirmation and no undo short of closing the tab.
+- **The to-do is a proposal, not an order.** Nothing is sent until the dialog
+  is sent, and the text that goes out is the edited one, not the one in
+  `TODO.md`. `TODO.md` is never rewritten: what is sent is not ticked off
+  there.
+- **Sending starts `claude`**, not whatever agent the space uses, and it
+  starts it in the space's folder. The dialog is the only confirmation; after
+  it, the session is a tab like any other, and closing it is on you.
 - **The folder is the space's folder, not where its terminals are.** A space
   whose terminals have moved still shows and still opens the repository it was
   made in. The branch is Herdr's, not git's: no branch, nothing shown.
@@ -100,9 +106,12 @@ with that to-do as the agent's first message.
 
 - A space whose repository has an open to-do shows the repository's folder
   name, its branch when Herdr knows one, and the to-do as the first `▶` line.
-- Clicking that line opens a new tab in that space running `claude` in that
-  folder, with the to-do text as its first message, and a notification names
-  the space and repeats the to-do.
+- Clicking that line opens a dialog with the to-do in an editable box, the
+  repository's name above it, and a Send and a Cancel button; nothing starts
+  until it is sent.
+- Sending it opens a new tab in that space running `claude` in that folder,
+  with the edited text as its first message, and a notification names the
+  repository and repeats the message. Esc or Cancel starts nothing.
 - A repository with seven or more open to-dos shows six of them and "+1 more".
 - A repository whose `TODO.md` has ticked boxes as well as open ones shows
   "N done" under its open to-dos; a repository with nothing open is absent

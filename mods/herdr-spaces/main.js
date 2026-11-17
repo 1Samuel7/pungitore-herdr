@@ -1,11 +1,13 @@
 // Workspace spaces: stable colored avatars, worktrees under their checkout,
 // grouped by machine when more than one is known. After a space's name, the repo
-// its first terminal is in now, only where unusual: branch, ahead/behind. Agent state lives in the agents list, not here. Click to
+// its first terminal is in now, only where unusual: branch, ahead/behind. The
+// agents working in a space live under it, one row each, and can be closed
+// from there without taking the space with them. Click to
 // switch, right-click for its menu, drag to reorder.
 
-import { View, div, svg } from "gpui-kit";
+import { View, div, svg, image } from "gpui-kit";
 import { v_flex, h_flex, ScrollHandle } from "gpui-base";
-import { spaces, machines, panes, run, openOverlay, exec, hc, theme, shared, setShared, watchFolder, window, layout } from "herdr";
+import { spaces, machines, panes, agents, terminals, focused, run, openOverlay, exec, hc, theme, shared, setShared, watchFolder, window, layout } from "herdr";
 
 // The spaces that must not be closed by accident.
 const PINNED = "herdr.pinned";
@@ -99,6 +101,29 @@ function lookIcon(icon, size, color) {
   return div().flex_none().text_size(size).child(icon);
 }
 
+// How urgent an agent is: what needs the person comes first.
+const RANK = { blocked: 4, done: 3, working: 2, idle: 1 };
+
+// What an agent puts before its title: a status glyph and the separator after
+// it ("✦  Working"), and the blink of a codex mark.
+const clean = (s) => (s ?? "").replace(/^[^\p{L}\p{N}\p{Ps}\p{Pi}]+/u, "").replace(/^\[ [!.] \] /, "").trim();
+
+// The icon of a program: a one-colour glyph, or a picture in its own colours.
+function pic(p, size, color) {
+  if (!p?.icon) return null;
+  return p.tint ? svg(p.icon).size(size).flex_none().text_color(color) : image(p.icon).w(size).h(size).flex_none();
+}
+
+// The state of an agent, as a mark: a spinner while it works, a bang when it
+// needs the person, a ring when it is idle, a dot when it is done.
+function mark(t, status) {
+  if (status === "working") return svg("mods/workspace-chrome/spinner.svg").size(11).mx(1).flex_none().text_color(t.working).spin(900);
+  if (status === "blocked") return div().size(13).flex_none().rounded(4).bg(t.blocked + "26").text_size(9.5).font_bold().text_color(t.blocked).flex().items_center().justify_center().child("!");
+  if (status === "idle") return div().size(6).mx(2).flex_none().rounded_full().border(1.5).border_color(t.idle ?? t.dim);
+  if (status === "done") return div().size(6).mx(2).flex_none().rounded_full().bg(t.done ?? t.dim);
+  return div().size(6).mx(2).flex_none();
+}
+
 // A space speaks up only when something in it needs you.
 export function glyph(status) {
   return status === "blocked" || status === "done" ? "●" : "·";
@@ -138,6 +163,8 @@ export default class Spaces extends View {
     cx.timer.every(15000, cx => this.refreshMachines(cx));
     // Refresh only when the refs could have changed (see `due`).
     cx.timer.every(250, (cx) => this.checkNew(cx));
+    // The agents under the spaces move on their own: a status, a title.
+    cx.timer.every(2000, (cx) => this.checkAgents(cx));
   }
 
   checkNew(cx) {
@@ -520,6 +547,154 @@ export default class Spaces extends View {
       .child(svg(icon).size(12).flex_none().text_color(solid ? "#ffffffe0" : t.dim));
   }
 
+  // The agents under the spaces change on their own. The list redraws when
+  // what it shows has changed, and not before.
+  checkAgents(cx) {
+    const sig = JSON.stringify(agents().map((a) => [a.space, a.address, a.status, a.title, a.focused]));
+    if (sig === this.agentSig) return;
+    this.agentSig = sig;
+    cx.notify();
+  }
+
+  // The agents working in a space, the ones needing the person first. A kept
+  // sub-agent is in agents() too, but it belongs under the agent that spawned
+  // it, not under the space.
+  agentsOf(spaceId, all) {
+    const parents = new Set(all.filter((t) => t.parent).map((t) => t.address));
+    return agents()
+      .filter((a) => a.space === spaceId && !parents.has(a.address))
+      .sort((x, y) => (RANK[y.status] ?? 0) - (RANK[x.status] ?? 0) || (x.title ?? "").localeCompare(y.title ?? ""));
+  }
+
+  // Live sub-agents of an agent, depth first, each with the tree lines in
+  // front of it.
+  subTree(all, addr, lead = []) {
+    const kids = all.filter((k) => k.parent === addr && k.state === "live");
+    return kids.flatMap((k, i) => {
+      const last = i === kids.length - 1;
+      return [
+        { t: k, lines: [...lead, last ? "└" : "├"] },
+        ...this.subTree(all, k.address, [...lead, last ? "" : "│"]),
+      ];
+    });
+  }
+
+  // What an agent's row says: the program it is, and the work it is on. The
+  // work is what the agent reported as its title, when that says more than the
+  // program's own name; else the name of the tab it works in.
+  agentLabel(a) {
+    const prog = a.program?.name ?? "Agent";
+    const live = clean(a.title);
+    const tab = this.tabs.get(a.tab);
+    const named = tab?.named ? tab.name : null;
+    const path = /^[~/]|^[A-Za-z]:\\/.test((a.title ?? "").replace(/^[^\p{L}\p{N}\/~]+/u, ""));
+    const telling = live && live !== a.address && live !== prog && !path && !live.includes("@") && live.toLowerCase() !== a.program?.key;
+    const detail = telling ? live : named && named !== prog ? named : null;
+    return { name: prog, detail };
+  }
+
+  // An agent under its space: what it is, what it is doing, and the way to
+  // close it without taking the space with it.
+  agentRow(t, space, a, last) {
+    const label = this.agentLabel(a);
+    const shown = focused()?.agent === a.address;
+    const icon = pic(a.program, 13, t.muted);
+    // Only an agent whose terminal we can see is ours to close.
+    const closable = this.terminals.some((x) => x.address === a.address);
+    const close = h_flex()
+      .id(`agent-close-${a.address}`)
+      .w(18)
+      .flex_none()
+      .justify_center()
+      .items_center()
+      .cursor_pointer()
+      .opacity(0.5)
+      .hover((s) => s.opacity(1).text_color(t.blocked))
+      .tooltip("Close this agent. The space stays.")
+      .on_click((_e, cx) => {
+        cx.stop_propagation();
+        this.closeAgent(space, a);
+      })
+      .child(svg("mods/workspace-chrome/x.svg").size(11).flex_none().text_color(t.muted));
+    return h_flex()
+      .id(`agent-${a.address}`)
+      .h(24)
+      .pl(18)
+      .pr(8)
+      .gap(6)
+      .items_center()
+      .rounded(6)
+      .when(shown, (el) => el.bg(t.raised))
+      .hover((s) => s.bg(t.hover))
+      .on_click(() => run("pane.focus", { pane: a.pane }))
+      .child(div().w(9).flex_none().text_size(11).text_color(t.dim).child(last ? "└" : "├"))
+      .when(Boolean(icon), (el) => el.child(icon))
+      .child(div().flex_none().max_w(96).truncate().text_size(12).text_color(t.foreground).child(label.name))
+      .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(t.muted).child(label.detail ? `· ${label.detail}` : ""))
+      .child(mark(t, a.status))
+      .when(closable, (el) => el.child(close));
+  }
+
+  // A kept sub-agent, under the agent that spawned it.
+  subAgentRow(t, s) {
+    const k = s.t;
+    const status = k.status === "error" ? "blocked" : k.status === "done" ? "idle" : k.status;
+    const shown = focused()?.agent === k.address;
+    const icon = pic(k.program, 13, t.dim);
+    return h_flex()
+      .id(`sub-${k.address}`)
+      .h(22)
+      .pl(18)
+      .pr(8)
+      .gap(0)
+      .items_center()
+      .rounded(6)
+      .when(shown, (el) => el.bg(t.raised))
+      .hover((s) => s.bg(t.hover))
+      .on_click(() => (this.listed.has(k.address) ? run("pane.focus", { terminal: k.address }) : run("terminal.peek", { terminal: k.address })))
+      .children(
+        s.lines.map((l) =>
+          div()
+            .self_start()
+            .mt(-4)
+            .w(9)
+            .h(17)
+            .mr(4)
+            .flex_none()
+            .when(Boolean(l), (el) => el.border_l(1.5).border_color(t.input))
+            .when(l === "└" || l === "├", (el) => el.border_b(1.5).rounded_bl(6)),
+        ),
+      )
+      .when(Boolean(icon), (el) => el.child(icon))
+      .child(div().min_w(0).flex_1().truncate().text_size(11.5).text_color(t.muted).child(k.name || k.template || k.program?.name || k.address))
+      .child(mark(t, status));
+  }
+
+  // Closing an agent must not take its space with it: Herdr ends a space when
+  // its last tab closes, so a shell tab stands in first when it would.
+  closeAgent(space, a) {
+    const term = this.terminals.find((x) => x.address === a.address);
+    if (!term) return;
+    if (term.parent) {
+      // A kept sub-agent shares its parent's tab: only its own pane goes.
+      const pane = a.pane ?? panes().find((p) => p.terminal === a.address)?.pane;
+      if (!pane) return;
+      if (panes().filter((p) => p.tab === a.tab).length <= 1) this.standIn(space);
+      run("pane.close", { pane });
+      return;
+    }
+    const tabs = space.tabs ?? [];
+    if (!tabs.some((x) => x.id === a.tab)) return;
+    if (tabs.length <= 1) this.standIn(space);
+    run("tab.close", { id: a.tab, confirmed: true });
+  }
+
+  // A plain shell in the space, so closing the last agent of a space does not
+  // close the space with it. The space and its pin stay.
+  standIn(space) {
+    run("tab.new", { space: space.id, folder: space.folder, focus: false });
+  }
+
   row({ w, i, g, tree }, t) {
     const on = w.active;
     const fromIndex = this.pressed === null ? -1 : spaces().findIndex(s => s.id === this.pressed);
@@ -552,7 +727,7 @@ export default class Spaces extends View {
           .font_bold()
           .text_color("#ffffff")
           .child([...w.name][0]?.toUpperCase() ?? "?");
-    return v_flex()
+    const spaceRow = v_flex()
       .relative()
       .id(`space-${w.id}`)
       .px(8)
@@ -630,6 +805,17 @@ export default class Spaces extends View {
               .child(this.action(`space-notes-${w.id}`, "mods/workspace-chrome/file-text.svg", "Notes for this space", () => openOverlay({ mod: "herdr-notes", kind: "dialog", width: 480, height: 580, props: { space: w.id } }), true)),
           )),
       );
+    // The agents of this space live under it: a child row each, so the tree
+    // reads space -> agent -> work, and an agent can be closed from where it
+    // works.
+    const here = this.agentsOf(w.id, this.terminals);
+    if (!here.length) return spaceRow;
+    const rows = [];
+    here.forEach((a, n) => {
+      rows.push(this.agentRow(t, w, a, n === here.length - 1));
+      for (const s of this.subTree(this.terminals, a.address)) rows.push(this.subAgentRow(t, s));
+    });
+    return v_flex().id(`space-group-${w.id}`).flex_none().child(spaceRow).children(rows);
   }
 
   compact({ w, i }, t) {
@@ -666,6 +852,10 @@ export default class Spaces extends View {
       changed = true;
     }
     if (changed) setShared("space.colors", kept);
+    // What the agent rows under the spaces are drawn from.
+    this.terminals = terminals();
+    this.tabs = new Map(sp.flatMap((s) => s.tabs ?? []).map((tab) => [tab.id, tab]));
+    this.listed = new Set(agents().map((a) => a.address));
     const list = this.grouped(t, collapsed);
     // Bring the active space into view when it, or its place in the list, changes; a row already in view stays put.
     const active = sp.find(p => p.active)?.id;

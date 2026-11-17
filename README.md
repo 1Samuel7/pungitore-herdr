@@ -9,15 +9,15 @@ window looks like, what the sidebar says, and what the panels show.
 
 ## The mods
 
-Ten mods, each with a recipe: a brief another agent could build the mod from,
+Eleven mods, each with a recipe: a brief another agent could build the mod from,
 and a screenshot of what it looks like. The recipes are the point — they say
 what the mod shows, how it behaves, what it is built from, what trips you up
 when you build it, and how you know it works.
 
 | Mod | What it is | Recipe |
 |---|---|---|
-| [`herdr-spaces`](mods/herdr-spaces) | The spaces list in the sidebar: every space a solid block of its own colour, grouped by machine | [recipe](mods/herdr-spaces/RECIPE.md) |
-| [`herdr-agents`](mods/herdr-agents) | The agents list below it, every row in the colour of the space it works in | [recipe](mods/herdr-agents/RECIPE.md) |
+| [`herdr-spaces`](mods/herdr-spaces) | The spaces list in the sidebar: every space a solid block of its own colour, grouped by machine, with the agents working in it under the space | [recipe](mods/herdr-spaces/RECIPE.md) |
+| [`herdr-agents`](mods/herdr-agents) | The standalone agents list — kept, but no longer in the layout: the agents live under their space | [recipe](mods/herdr-agents/RECIPE.md) |
 | [`herdr-dock`](mods/herdr-dock) | The strip at the foot of the sidebar: the theme, how much of the plan is left, the notes | [recipe](mods/herdr-dock/RECIPE.md) |
 | [`herdr-tabs`](mods/herdr-tabs) | The tab bar, the active tab in the colour of its space | [recipe](mods/herdr-tabs/RECIPE.md) |
 | [`herdr-pane`](mods/herdr-pane) | The header on every pane: the program, the folder, the agent's state | [recipe](mods/herdr-pane/RECIPE.md) |
@@ -26,6 +26,7 @@ when you build it, and how you know it works.
 | [`herdr-notes`](mods/herdr-notes) | The notes and to-do dialog, global and per space | [recipe](mods/herdr-notes/RECIPE.md) |
 | [`herdr-panel`](mods/herdr-panel) | The popup that picks the theme, and the one that shows the plan's usage | [recipe](mods/herdr-panel/RECIPE.md) |
 | [`pungitore-panel`](mods/pungitore-panel) | The right-hand panel: each repository's open to-dos, mirrored from its `TODO.md` | [recipe](mods/pungitore-panel/RECIPE.md) |
+| [`pungitore-confirm`](mods/pungitore-confirm) | The dialog a to-do opens: the message can be changed before it goes out | [recipe](mods/pungitore-confirm/RECIPE.md) |
 
 Five of them — `herdr-agents`, `herdr-menu`, `herdr-pane`, `herdr-spaces` and
 `herdr-tabs` — are modified copies of mods Herdr ships, and each says so in
@@ -34,8 +35,8 @@ its `mod.json` under `cloned_from`. See [NOTICE](NOTICE).
 ## The rest
 
 - [`layouts/herdr.json`](layouts/herdr.json) — the layout: a 268px sidebar with
-  the spaces and agents lists, the tab bar and panes in the middle, and the
-  320px Pungitore panel on the right.
+  the spaces list — the agents live under their space in it — the tab bar and
+  panes in the middle, and the 320px Pungitore panel on the right.
 - [`themes/`](themes) — `tron-blue` and `tron-orange`, the two of Herdr's
   themes I keep coming back to.
 - [`keys.json`](keys.json) — the key bindings.
