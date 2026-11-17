@@ -79,6 +79,15 @@ Herdr's own mods — `agents`, `tabs`, `pane`, `spaces`, `menu`, `files`,
 `changes` and the rest — are not in this repository. They come with Herdr, and
 copying them here would only ship a stale copy of someone else's work.
 
+## What it needs
+
+- **Herdr** — [herdr.dev](https://herdr.dev). The mods here are written against
+  the shipped ones of version 0.1.16, and each says so in its `mod.json`.
+- **`mmx` on `PATH`, with a MiniMax key in `~/.mmx/config.json`** — only for
+  the strip at the foot of the sidebar, which shows how much of the plan is
+  left. Without it that strip reads "No plan"; everything else works.
+- **Nothing else.** The rest of the setup is this repository.
+
 The mods here borrow a few files from Herdr's shipped ones: `herdr-dock`'s
 `palette.svg` and `herdr-pane`'s and `herdr-tabs`' window art, and
 `workspace-chrome`'s `check.svg` and `spinner.svg`. Those come with Herdr too.
