@@ -1,0 +1,44 @@
+Pungitore Herdr setup
+Copyright 2026 Marcos Nicolas Pungitore
+
+This product includes software developed as part of the Herdr project
+(https://github.com/herdrdev/herdr-app), licensed under the Apache License,
+Version 2.0. A copy of that licence is in the LICENSE file at the root of this
+repository.
+
+Original work
+-------------
+
+The following are original to this repository:
+
+  mods/herdr-dock/        the sidebar dock: theme, plan usage, notes
+  mods/herdr-look/        the per-space icon and colour dialog
+  mods/herdr-notes/       the notes and to-do dialog
+  mods/herdr-panel/       the theme and plan-usage popup
+  mods/pungitore-panel/   the right-hand panel that mirrors each repository's TODO.md
+
+  layouts/herdr.json      the personal layout
+  themes/tron-blue.json   the Tron blue theme
+  themes/tron-orange.json the Tron orange theme
+  keys.json               the key bindings
+  settings.json           the personal settings
+  README.md, .gitignore
+
+Derived work
+------------
+
+The following mods are modified copies of mods shipped with Herdr, version
+0.1.16, from https://github.com/herdrdev/herdr-app, licensed under the Apache
+License, Version 2.0. They are listed in each mod's `mod.json` under
+`cloned_from`, naming the shipped mod and the version it was taken from:
+
+  mods/herdr-agents/  <- mods/agents   (0.1.16)
+  mods/herdr-menu/    <- mods/menu     (0.1.16)
+  mods/herdr-pane/    <- mods/pane     (0.1.16)
+  mods/herdr-spaces/  <- mods/spaces   (0.1.16)
+  mods/herdr-tabs/    <- mods/tabs     (0.1.16)
+
+The SVG files under `mods/herdr-pane/` (`close.svg`, `split-down.svg`,
+`split-right.svg`, `unzoom.svg`, `zoom.svg`) and `mods/herdr-tabs/`
+(`win-close.svg`, `win-max.svg`, `win-min.svg`, `win-restore.svg`) are
+unchanged copies of the art shipped with the mods named above.

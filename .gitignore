@@ -1,0 +1,22 @@
+# The type definitions are written by the runtime on every run, in every
+# directory that imports them. A committed copy could only ever be the stale
+# one — the file says so itself.
+gpui-kit.d.ts
+
+# Herdr's own bookkeeping: written by the app, not by hand.
+shared.json
+shared.json.corrupt-*
+seen.json
+installed.json
+view.json
+window.json
+windows.json
+data/
+frame/
+icons/
+telemetry/
+
+# Scratch.
+minimax-five-hour-window.html
+*.log
+.DS_Store
