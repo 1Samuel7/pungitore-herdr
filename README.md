@@ -16,7 +16,7 @@ when you build it, and how you know it works.
 
 | Mod | What it is | Recipe |
 |---|---|---|
-| [`herdr-spaces`](mods/herdr-spaces) | The spaces list in the sidebar: every space a solid block of its own colour, grouped by machine, with the agents working in it under the space | [recipe](mods/herdr-spaces/RECIPE.md) |
+| [`herdr-spaces`](mods/herdr-spaces) | The spaces list in the sidebar: every space a solid block of its own colour, grouped by machine, with the agents working in it under the space, in that colour a shade darker | [recipe](mods/herdr-spaces/RECIPE.md) |
 | [`herdr-agents`](mods/herdr-agents) | The standalone agents list — kept, but no longer in the layout: the agents live under their space | [recipe](mods/herdr-agents/RECIPE.md) |
 | [`herdr-dock`](mods/herdr-dock) | The strip at the foot of the sidebar: the theme, how much of the plan is left, the notes | [recipe](mods/herdr-dock/RECIPE.md) |
 | [`herdr-tabs`](mods/herdr-tabs) | The tab bar, the active tab in the colour of its space | [recipe](mods/herdr-tabs/RECIPE.md) |
@@ -44,18 +44,36 @@ its `mod.json` under `cloned_from`. See [NOTICE](NOTICE).
 
 ## Installing it
 
-Herdr reads everything from `~/.config/herdr-app`. To try this setup:
+Send someone this link — <https://github.com/1Samuel7/pungitore-herdr> — and
+they can get this exact setup with one command. Herdr reads everything from
+`~/.config/herdr-app` (`HERDR_APP_HOME` picks another):
 
 ```sh
 git clone https://github.com/1Samuel7/pungitore-herdr.git
 cd pungitore-herdr
+./install.sh
+```
+
+The script copies the mods, the layout, the themes, the keys and the settings
+into Herdr's home, keeps a copy of what was there before in a timestamped
+folder, and leaves mods of your own alone. Herdr has to be running for the new
+layout to show up.
+
+Then switch to the layout:
+
+```sh
+herdr-app do layout.switch '{"name": "herdr"}'
+```
+
+or pick it in the menu. Herdr applies layout and key changes live; mods reload
+themselves as you edit them.
+
+By hand, without the script:
+
+```sh
 cp -r mods/* layouts/herdr.json themes/* ~/.config/herdr-app/
 cp keys.json settings.json ~/.config/herdr-app/
 ```
-
-Then switch to the layout with `layout.switch {name: "herdr"}`, or pick it in
-the menu. Herdr applies layout and key changes live; mods reload themselves as
-you edit them.
 
 Herdr's own mods — `agents`, `tabs`, `pane`, `spaces`, `menu`, `files`,
 `changes` and the rest — are not in this repository. They come with Herdr, and

@@ -115,13 +115,22 @@ function pic(p, size, color) {
 }
 
 // The state of an agent, as a mark: a spinner while it works, a bang when it
-// needs the person, a ring when it is idle, a dot when it is done.
-function mark(t, status) {
-  if (status === "working") return svg("mods/workspace-chrome/spinner.svg").size(11).mx(1).flex_none().text_color(t.working).spin(900);
-  if (status === "blocked") return div().size(13).flex_none().rounded(4).bg(t.blocked + "26").text_size(9.5).font_bold().text_color(t.blocked).flex().items_center().justify_center().child("!");
-  if (status === "idle") return div().size(6).mx(2).flex_none().rounded_full().border(1.5).border_color(t.idle ?? t.dim);
-  if (status === "done") return div().size(6).mx(2).flex_none().rounded_full().bg(t.done ?? t.dim);
+// needs the person, a ring when it is idle, a dot when it is done. On a
+// coloured ground the mark keeps its own colour, brightened to still read.
+function mark(t, status, banded) {
+  const c = (x) => (banded ? lighten(x, 0.15) : x);
+  if (status === "working") return svg("mods/workspace-chrome/spinner.svg").size(11).mx(1).flex_none().text_color(c(t.working)).spin(900);
+  if (status === "blocked") return div().size(13).flex_none().rounded(4).bg(banded ? "#ffffff2e" : t.blocked + "26").text_size(9.5).font_bold().text_color(c(t.blocked)).flex().items_center().justify_center().child("!");
+  if (status === "idle") return div().size(6).mx(2).flex_none().rounded_full().border(1.5).border_color(c(t.idle ?? t.dim));
+  if (status === "done") return div().size(6).mx(2).flex_none().rounded_full().bg(c(t.done ?? t.dim));
   return div().size(6).mx(2).flex_none();
+}
+
+// The colour the agents of a space wear: the space's own colour, a clear step
+// darker than the space's block, so the group reads as part of the space.
+function agentBand(fill) {
+  const ground = deepen(fill, 0.52);
+  return { ground, on: lighten(ground, 0.08), hover: lighten(ground, 0.16) };
 }
 
 // A space speaks up only when something in it needs you.
@@ -594,11 +603,12 @@ export default class Spaces extends View {
   }
 
   // An agent under its space: what it is, what it is doing, and the way to
-  // close it without taking the space with it.
-  agentRow(t, space, a, last) {
+  // close it without taking the space with it. The row wears the space's own
+  // colour, a step darker than the space's block, with white letters on it.
+  agentRow(t, space, a, last, band) {
     const label = this.agentLabel(a);
     const shown = focused()?.agent === a.address;
-    const icon = pic(a.program, 13, t.muted);
+    const icon = pic(a.program, 13, "#ffffffb8");
     // Only an agent whose terminal we can see is ours to close.
     const closable = this.terminals.some((x) => x.address === a.address);
     const close = h_flex()
@@ -608,14 +618,14 @@ export default class Spaces extends View {
       .justify_center()
       .items_center()
       .cursor_pointer()
-      .opacity(0.5)
-      .hover((s) => s.opacity(1).text_color(t.blocked))
+      .opacity(0.55)
+      .hover((s) => s.opacity(1).text_color("#ffffff"))
       .tooltip("Close this agent. The space stays.")
       .on_click((_e, cx) => {
         cx.stop_propagation();
         this.closeAgent(space, a);
       })
-      .child(svg("mods/workspace-chrome/x.svg").size(11).flex_none().text_color(t.muted));
+      .child(svg("mods/workspace-chrome/x.svg").size(11).flex_none().text_color("#ffffffb8"));
     return h_flex()
       .id(`agent-${a.address}`)
       .h(24)
@@ -623,24 +633,24 @@ export default class Spaces extends View {
       .pr(8)
       .gap(6)
       .items_center()
-      .rounded(6)
-      .when(shown, (el) => el.bg(t.raised))
-      .hover((s) => s.bg(t.hover))
+      .bg(shown ? band.on : band.ground)
+      .hover((s) => s.bg(band.hover))
       .on_click(() => run("pane.focus", { pane: a.pane }))
-      .child(div().w(9).flex_none().text_size(11).text_color(t.dim).child(last ? "└" : "├"))
+      .child(div().w(9).flex_none().text_size(11).text_color("#ffffffb8").child(last ? "└" : "├"))
       .when(Boolean(icon), (el) => el.child(icon))
-      .child(div().flex_none().max_w(96).truncate().text_size(12).text_color(t.foreground).child(label.name))
-      .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(t.muted).child(label.detail ? `· ${label.detail}` : ""))
-      .child(mark(t, a.status))
+      .child(div().flex_none().max_w(96).truncate().text_size(12).text_color("#ffffff").child(label.name))
+      .child(div().flex_1().min_w(0).truncate().text_size(11).text_color("#ffffffb8").child(label.detail ? `· ${label.detail}` : ""))
+      .child(mark(t, a.status, true))
       .when(closable, (el) => el.child(close));
   }
 
-  // A kept sub-agent, under the agent that spawned it.
-  subAgentRow(t, s) {
+  // A kept sub-agent, under the agent that spawned it. It wears the same
+  // colour as the agent above it, with the tree lines in white.
+  subAgentRow(t, s, band) {
     const k = s.t;
     const status = k.status === "error" ? "blocked" : k.status === "done" ? "idle" : k.status;
     const shown = focused()?.agent === k.address;
-    const icon = pic(k.program, 13, t.dim);
+    const icon = pic(k.program, 13, "#ffffffb8");
     return h_flex()
       .id(`sub-${k.address}`)
       .h(22)
@@ -648,9 +658,8 @@ export default class Spaces extends View {
       .pr(8)
       .gap(0)
       .items_center()
-      .rounded(6)
-      .when(shown, (el) => el.bg(t.raised))
-      .hover((s) => s.bg(t.hover))
+      .bg(shown ? band.on : band.ground)
+      .hover((s) => s.bg(band.hover))
       .on_click(() => (this.listed.has(k.address) ? run("pane.focus", { terminal: k.address }) : run("terminal.peek", { terminal: k.address })))
       .children(
         s.lines.map((l) =>
@@ -661,13 +670,13 @@ export default class Spaces extends View {
             .h(17)
             .mr(4)
             .flex_none()
-            .when(Boolean(l), (el) => el.border_l(1.5).border_color(t.input))
-            .when(l === "└" || l === "├", (el) => el.border_b(1.5).rounded_bl(6)),
+            .when(Boolean(l), (el) => el.border_l(1.5).border_color("#ffffff6e"))
+            .when(l === "└" || l === "├", (el) => el.border_b(1.5)),
         ),
       )
       .when(Boolean(icon), (el) => el.child(icon))
-      .child(div().min_w(0).flex_1().truncate().text_size(11.5).text_color(t.muted).child(k.name || k.template || k.program?.name || k.address))
-      .child(mark(t, status));
+      .child(div().min_w(0).flex_1().truncate().text_size(11.5).text_color("#ffffffb8").child(k.name || k.template || k.program?.name || k.address))
+      .child(mark(t, status, true));
   }
 
   // Closing an agent must not take its space with it: Herdr ends a space when
@@ -810,10 +819,11 @@ export default class Spaces extends View {
     // works.
     const here = this.agentsOf(w.id, this.terminals);
     if (!here.length) return spaceRow;
+    const band = agentBand(fill);
     const rows = [];
     here.forEach((a, n) => {
-      rows.push(this.agentRow(t, w, a, n === here.length - 1));
-      for (const s of this.subTree(this.terminals, a.address)) rows.push(this.subAgentRow(t, s));
+      rows.push(this.agentRow(t, w, a, n === here.length - 1, band));
+      for (const s of this.subTree(this.terminals, a.address)) rows.push(this.subAgentRow(t, s, band));
     });
     return v_flex().id(`space-group-${w.id}`).flex_none().child(spaceRow).children(rows);
   }
