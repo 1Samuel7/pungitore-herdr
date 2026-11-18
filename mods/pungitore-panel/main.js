@@ -1,23 +1,30 @@
-// The Pungitore panel.
+// The to-do panel.
 //
-// Shows the repository the shown space works in the way the workflow sees it:
-// the open to-dos from its TODO.md, the branch it is on, and what the agents
-// in it are doing. The first open to-do is the next action, and clicking it
-// opens that to-do in a dialog, where it can be changed before it is sent as
-// the first message of a new session.
+// Two lists, both about the space in front:
 //
-// The repository's TODO.md is canonical. This panel only mirrors it, and it
-// reads it directly so that the mirror cannot drift from the truth.
+//   * the repository's own to-dos, read from its TODO.md — the truth the agent
+//     works from (ADR-0005), mirrored here so it can be seen and started;
+//   * the quick to-dos the person typed by hand, which wait to be turned into
+//     a deeper to-do in a session and then written into the repository.
+//
+// A to-do is a message to an agent, so it is not sent on a click: it opens in
+// a dialog, where it can be read, changed, and only then sent as the first
+// message of a new session.
 
-import { View, div } from "gpui-kit";
-import { v_flex, h_flex } from "gpui-base";
+import { View, div, svg } from "gpui-kit";
+import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import {
-  spaces, agents, panes, focused, readTextFile, exec, theme, openOverlay, checking, home, shared,
+  spaces, agents, panes, focused, readTextFile, theme, openOverlay, checking, home,
+  shared, setShared,
 } from "herdr";
 
 const MAX_TODOS = 6;
 const OPEN = /^\s*[-*]\s+\[ \]\s+(.*\S)\s*$/;
 const DONE = /^\s*[-*]\s+\[[xX]\]/;
+
+// The quick to-dos live in the store the notes dialog used, so what was
+// written there before is still here: a space's list is its list.
+const QUICK = "herdr.notes";
 
 // The colours a space wears in the sidebar. The same names, the same hexes:
 // the panel says which space it is showing, in the colour that space wears.
@@ -33,6 +40,8 @@ const STATE_COLOR = {
   idle: "idle",
   error: "blocked",
 };
+
+const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 function parseTodos(text) {
   const open = [];
@@ -124,37 +133,32 @@ async function findTodos(folder, machine) {
   return { folder, open: [], done: 0, missing: true };
 }
 
-// How many candidate lessons are waiting to be promoted. The Learning Loop
-// publishes the count in a marker comment, so it is read as a fact rather
-// than by parsing another plugin's files: the marker is the contract, the
-// directory it lives in is an accident of layout (ADR-0013).
-async function pendingLessons() {
-  const dir = `${home()}/.claude/plugins/data`;
-  try {
-    const result = await exec(
-      "grep",
-      ["-rhoE", "--include=*.md", "<!-- pungitore-learning: pending [0-9]+ -->", dir],
-      { timeout: 5000 }
-    );
-    let total = 0;
-    for (const line of String(result.stdout || "").split("\n")) {
-      const match = /pending (\d+)/.exec(line);
-      if (match) total += Number(match[1]);
-    }
-    return total;
-  } catch {
-    // A machine without the Learning Loop installed has nothing waiting.
-    return 0;
+// The quick to-dos of every space, as a copy: what is written back is what
+// was changed.
+function quickStore() {
+  const v = shared(QUICK);
+  const s = v && typeof v === "object" ? v : {};
+  const perSpace = {};
+  for (const [id, list] of Object.entries(s.spaces ?? {})) {
+    perSpace[id] = (list ?? []).map((i) => ({ ...i }));
   }
+  return { global: (s.global ?? []).map((i) => ({ ...i })), spaces: perSpace };
 }
 
 export default class Pungitore extends View {
   init(_props, cx) {
     this.target = null;
     this.todos = { open: [], done: 0, missing: true };
-    this.pending = 0;
     this.key = null;
     this.loading = false;
+    this.typing = false;
+    this.handle = cx.focus_handle();
+    this.draft = InputState.new({ placeholder: "Add a to-do…" });
+    this.draft.on("submit", (_e, cx) => this.addQuick(cx));
+    this.draft.on("focus", (_e, cx) => {
+      this.typing = true;
+      cx.notify();
+    });
     if (checking()) return;
     this.refresh(cx);
     // The file changes under us; the app's own data does not, and that arrives
@@ -169,16 +173,15 @@ export default class Pungitore extends View {
     return here ? `${here.space.id}|${here.folder ?? ""}` : "none";
   }
 
-  // The poll: the file changes under us, and the waiting count moves.
+  // The poll: the file changes under us, and the to-dos on screen move.
   async refresh(cx) {
     const here = current();
     this.key = Pungitore.keyOf(here);
-    await this.load(cx, here, true);
+    await this.load(cx, here);
   }
 
-  // Reading the repository: its TODO.md, and — when the poll asks for it —
-  // how many candidate lessons are waiting.
-  async load(cx, here, withPending) {
+  // Reading the repository: its TODO.md.
+  async load(cx, here) {
     const key = Pungitore.keyOf(here);
     const todos = here && here.folder
       ? await findTodos(here.folder, here.space.machine)
@@ -191,7 +194,6 @@ export default class Pungitore extends View {
     this.target = here ? { ...here, folder: todos.folder ?? here.folder } : null;
     this.todos = todos;
     this.loading = false;
-    if (withPending) this.pending = await pendingLessons();
     cx.notify();
   }
 
@@ -204,13 +206,13 @@ export default class Pungitore extends View {
   // A to-do is a message to an agent, so it is not sent on a click: the
   // to-do opens in a dialog where it can be read, changed, and only then
   // sent as the first message of a new session.
-  confirm(space, folder, text) {
+  confirm(space, folder, text, hint) {
     openOverlay({
       mod: "pungitore-confirm",
       kind: "dialog",
       width: 520,
-      height: 250,
-      props: { space: space.id, folder, name: repoName(folder), text },
+      height: 260,
+      props: { space: space.id, folder, name: repoName(folder), text, hint },
     });
   }
 
@@ -234,6 +236,7 @@ export default class Pungitore extends View {
       );
   }
 
+  // The repository the space works in, and the to-dos it holds.
   spaceBlock(t, target, todos) {
     const here = this.agentsIn(target.space.id);
     // The colour the space wears in the sidebar: the panel says which space it
@@ -303,6 +306,146 @@ export default class Pungitore extends View {
       );
   }
 
+  // The quick to-dos of the space in front: what the person typed by hand.
+  quickList() {
+    const id = this.target?.space?.id ?? null;
+    if (!id) return [];
+    return quickStore().spaces[id] ?? [];
+  }
+
+  writeQuick(list, cx) {
+    const id = this.target?.space?.id ?? null;
+    if (!id) return;
+    const v = quickStore();
+    v.spaces[id] = list;
+    setShared(QUICK, v);
+    cx.notify();
+  }
+
+  // A new quick to-do: it belongs to the space in front.
+  addQuick(cx) {
+    const text = this.draft.value().trim();
+    const id = this.target?.space?.id ?? null;
+    if (!text || !id) return;
+    const v = quickStore();
+    v.spaces[id] = [...(v.spaces[id] ?? []), { id: uid(), text, done: false }];
+    setShared(QUICK, v);
+    this.draft.set_value("");
+    cx.notify();
+  }
+
+  toggleQuick(item, cx) {
+    this.writeQuick(this.quickList().map((i) => (i.id === item.id ? { ...i, done: !i.done } : i)), cx);
+  }
+
+  dropQuick(item, cx) {
+    this.writeQuick(this.quickList().filter((i) => i.id !== item.id), cx);
+  }
+
+  // A quick to-do goes to a session, where it is refined and then written into
+  // the repository's TODO.md. The dialog says so, so the agent is not left to
+  // guess what the to-do is for.
+  quickRow(t, item, target) {
+    const box = h_flex()
+      .id(`quick-box-${item.id}`)
+      .w(16)
+      .flex_none()
+      .justify_center()
+      .items_center()
+      .cursor_pointer()
+      .child(
+        div()
+          .size(11)
+          .rounded(3)
+          .border_1()
+          .border_color(item.done ? t.done : t.border)
+          .bg(item.done ? t.done : t.popover)
+          .when(item.done, (el) => el.child(svg("mods/workspace-chrome/check.svg").size(8).text_color(t.background))),
+      );
+    return h_flex()
+      .id(`quick-${item.id}`)
+      .min_h(28)
+      .px(8)
+      .gap(8)
+      .rounded(6)
+      .items_center()
+      .hover((s) => s.bg(t.hover))
+      .child(box.on_click((_e, cx) => this.toggleQuick(item, cx)))
+      .child(
+        h_flex()
+          .flex_1()
+          .min_w(0)
+          .items_center()
+          .cursor_pointer()
+          .on_click((_e, cx) =>
+            this.confirm(
+              target.space,
+              target.folder,
+              item.text,
+              "The session refines this to-do and writes it into this repository's TODO.md.",
+            ),
+          )
+          .child(
+            div()
+              .flex_1()
+              .truncate()
+              .text_size(11.5)
+              .text_color(item.done ? t.dim : t.foreground)
+              .child(item.text),
+          ),
+      )
+      .child(
+        h_flex()
+          .id(`quick-drop-${item.id}`)
+          .w(18)
+          .flex_none()
+          .justify_center()
+          .items_center()
+          .cursor_pointer()
+          .opacity(0.5)
+          .hover((s) => s.opacity(1).text_color(t.blocked))
+          .on_click((_e, cx) => this.dropQuick(item, cx))
+          .child(svg("mods/workspace-chrome/x.svg").size(11)),
+      );
+  }
+
+  // The second list: the quick to-dos, and the field that writes one.
+  quickBlock(t, target) {
+    const list = this.quickList();
+    return v_flex()
+      .id("pungitore-quick")
+      .w_full()
+      .gap(3)
+      .py(6)
+      .child(
+        h_flex()
+          .items_center()
+          .gap(8)
+          .child(div().text_size(12.5).font_semibold().text_color(t.foreground).child("Quick to-dos"))
+          .child(div().flex_1())
+          .child(div().text_size(10.5).text_color(t.dim).child("yours, kept in Herdr")),
+      )
+      .children(
+        list.length
+          ? list.map((item) => this.quickRow(t, item, target))
+          : [div().px(8).py(3).text_size(11).text_color(t.dim).child("None yet — write one below.")],
+      )
+      .child(
+        h_flex()
+          .id("quick-add")
+          .h(30)
+          .px(9)
+          .flex_1()
+          .items_center()
+          .rounded(8)
+          .border_1()
+          .border_color(this.typing ? t.accent : t.input)
+          .bg(t.background)
+          .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+          .child(Input.new(this.draft).flex_1().h_full().text_size(12).text_color(t.foreground)),
+      );
+  }
+
   render(cx) {
     const t = theme();
     // Herdr redraws the mod when its live data changes — a space switched, a
@@ -315,33 +458,54 @@ export default class Pungitore extends View {
       this.key = key;
       this.loading = true;
       this.todos = { open: [], done: 0, missing: true };
-      cx.timer.after(0, (cx) => this.load(cx, here, false));
+      cx.timer.after(0, (cx) => this.load(cx, here));
     }
     const target = this.target;
 
     const title = h_flex()
       .id("pungitore-title")
       .px(4)
-      .pb(4)
+      .pb(2)
       .gap(6)
       .items_center()
-      .child(div().text_size(11).text_color(t.dim).child("Pungitore"))
-      .when(
-        this.pending > 0,
-        (el) => el.child(div().flex_none().text_size(11).text_color(t.accent).child(`${this.pending} waiting`)),
-      );
+      .child(div().text_size(12.5).font_semibold().text_color(t.foreground).child("To-dos"));
 
     const body = target && target.folder
-      ? [this.spaceBlock(t, target, this.todos)]
-      : [div().px(4).py(6).text_size(11.5).text_color(t.dim).child("No space is shown.")];
+      ? [
+          v_flex()
+            .id("pungitore-repository")
+            .w_full()
+            .gap(3)
+            .child(
+              h_flex()
+                .items_center()
+                .gap(8)
+                .child(div().text_size(12.5).font_semibold().text_color(t.foreground).child("This repository"))
+                .child(div().flex_1()),
+            )
+            .child(this.spaceBlock(t, target, this.todos)),
+          this.quickBlock(t, target),
+        ]
+      : [
+          div().px(4).py(6).text_size(11.5).text_color(t.dim).child("No space is shown."),
+        ];
 
     return v_flex()
       .id("pungitore-root")
       .size_full()
+      .min_h(0)
       .bg(t.surface)
       .overflow_y_scrollbar()
       .p(8)
       .gap(2)
+      .track_focus(this.handle)
+      .on_key_down((e, cx) => {
+        if (e.key === "escape" && this.typing) {
+          this.typing = false;
+          this.handle.focus();
+          cx.stop_propagation();
+        }
+      })
       .child(title)
       .children(body);
   }
