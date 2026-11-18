@@ -1,13 +1,15 @@
 # Panel
 
 The panel is a small popup that opens on demand from the bar at the bottom of Herdr's
-sidebar. It has two faces. The **Theme** face lists three themes — Default, Tron blue and
+sidebar. It has three faces. The **Theme** face lists three themes — Default, Tron blue and
 Tron orange — each with a coloured dot; the theme in use is ticked and highlighted, and
 clicking a row repaints the whole app and closes the popup. The **Usage** face reads the
 MiniMax plan and shows two meters — the 5-hour window and, when the plan has one, the week —
 each a 6px bar that runs from green through amber to red as the quota is used up, with the
 percentage, the time the window ends and the time left under it, plus a line of the times
-the credits last came back. It shows one thing at a time: the face is chosen by the `panel`
+the credits last came back. The **Lessons** face lists the candidate lessons the Learning
+Loop is waiting for a decision on, and offers the Learning Loop's own command to list them
+again in more words. It shows one thing at a time: the face is chosen by the `panel`
 prop it is opened with.
 
 ![Panel](preview.png)
@@ -55,11 +57,33 @@ the content sits at the top of the frame.
   plan…"** at 10.5px in `dim`. If the plan cannot be read: **"MiniMax M"**, and the error
   under it at 10.5px in `dim`.
 
+*The lessons face* (a 420×460 popup):
+
+- The background is the theme's `popover` colour; the panel pads it by 10px and leaves 8px
+  between its blocks.
+- A first line: **"Lessons to review"** at 12.5px in `foreground`, and at the right the count
+  in 10.5px in `dim` — **"7 waiting"**.
+- A second line at 10.5px in `dim`: **"Statements your sessions looked like lessons, waiting
+  for a decision."**
+- One card per candidate, filled with the theme's `raised` colour, 8px of side padding and 6px
+  above and below, with 6px between the cards. Each card has two lines:
+  - a first line with the candidate's id (**"C7"**) in 10.5px `dim` at the left, the folder it
+    came from in 10.5px `dim` in the middle (cut off with an ellipsis), and the day it was
+    staged (**"2026-11-18"**) at the right;
+  - the lesson itself at 11px in `foreground`, cut off after 240 characters.
+- While the candidates are being read: **"Reading the candidates…"** at 11.5px in `dim`. When
+  there are none: **"Nothing is waiting: every candidate has been promoted or dismissed."**
+- A **"Run the command"** button at the foot of the panel: 26px tall, 10px of padding, 6px
+  rounded corners, filled with `raised`, the words in `foreground`. While the command runs it
+  reads **"Running…"**.
+- What the command printed appears above the button, in a box filled with `raised`, at 10px in
+  `dim`, scrollable, at most 150px tall.
+
 **How it behaves:**
 
 - **The face is fixed at open time.** `props().panel` decides: `"usage"` gives the usage
-  face, anything else (including no prop at all) gives the theme face. It is not a toggle —
-  nothing in the panel switches faces.
+  face, `"lessons"` the lessons face, anything else (including no prop at all) gives the
+  theme face. It is not a toggle — nothing in the panel switches faces.
 - **No agent statuses appear here.** The panel carries no agent list: it is about the
   MiniMax plan, not about the agents in the sidebar. The only status it shows is the quota's
   own: the bar's colour, from green (room to spare) through amber to red (nearly gone).
@@ -75,7 +99,20 @@ the content sits at the top of the frame.
 - **Nothing moves.** There are no timers and no animation in the panel: the usage face is a
   snapshot taken when the popup opened. The sidebar's dock re-reads the plan every 60 seconds
   and writes it to shared state, but the panel keeps the copy it took at open time, so an open
-  panel does not tick over — close it and open it again to see new numbers.
+  panel does not tick over — close it and open it again to see new numbers. The lessons face
+  is read once, when the popup opens, for the same reason.
+- **The candidates are read from the staging files.** The Learning Loop stages a candidate
+  lesson as a `### Cn — <timestamp> — pending` heading under
+  `~/.claude/plugins/data/<plugin>/staging/*.md`, with the folder it came from in a
+  `- cwd:` line. The panel walks those files itself and keeps only the headings that still
+  say **pending** — the ones already promoted or dismissed are left out. The count the dock
+  shows comes from the Learning Loop's own marker instead (ADR-0013); the two are read from
+  different places on purpose.
+- **"Run the command" runs the Learning Loop's own script.** The panel finds the newest
+  installed version of the Learning Loop plugin under
+  `~/.claude/plugins/cache/pungitore/pungitore-learning/<version>/scripts/staging.js` and runs
+  it with the argument `list`, showing what it prints. If the Learning Loop is not installed
+  the panel says so instead of failing silently.
 
 **Built from:**
 
@@ -94,28 +131,35 @@ the content sits at the top of the frame.
     `herdr-pane`, reveal always, 30px, position top, pane background `background`, 1px
     `border` border, a 1px `#3fae6a` focus edge, radius 0, gap 8, lone) and `panel`
     (a `column` 368px, min 280, max 900, `hidden: true`) whose `panel-body` is a `stack` of
-    `files` and `changes` with `files` active; then `status` (block, `workspace-status`,
-    28px).
-  - `pungitore-panel` (block, 320px).
+    `files`, `changes` and `todos` with `files` active; then `status` (block,
+    `workspace-status`, 28px).
   - The panel is opened by the **`herdr-dock` block in that sidebar**, and by nothing else:
-    the palette button opens it as a 250×170 popup with `props: {panel: "theme"}`, and the
-    MiniMax bar opens it as a 320×220 popup with `props: {panel: "usage"}`.
+    the palette button opens it as a 250×170 popup with `props: {panel: "theme"}`, the
+    MiniMax bar as a 320×220 popup with `props: {panel: "usage"}`, and the lessons row as a
+    420×460 popup with `props: {panel: "lessons"}`.
 - **Props roles.** `props().panel` is `"theme"` or `"usage"` and picks the face.
   `props().overlay` is the id of the overlay this copy is showing, and is what
   `closeOverlay` is given to shut the popup.
 - **The herdr functions it calls:** `theme()` for the colours, `themes()` for the list of
   themes `app.theme` accepts, `run("app.theme", {name})` to switch, `shared()` /
   `setShared()` for the three shared keys, `props()` for the face and the overlay id,
-  `closeOverlay()` to dismiss itself, `exec()` to run `mmx`, and `checking()` so the mod
-  does nothing during `herdr-app check`.
+  `closeOverlay()` to dismiss itself, `exec()` to run `mmx` and the Learning Loop's script,
+  `home()` for the home directory, and `checking()` so the mod does nothing during
+  `herdr-app check`.
 - **The one command it runs:** `app.theme {name}`, with `name` one of `atom-one-dark`,
   `tron-blue`, `tron-orange`.
-- **The one program it runs:** `mmx quota show --output json`, locally, with a 20000ms
-  timeout. It reads `model_remains[]` and takes the first entry whose `model_name` matches
-  `/m3|flash|general/i`, else the first entry. From it the panel takes
-  `current_interval_remaining_percent`, `start_time`, `end_time`, and — unless
-  `current_weekly_status` is 3, which means the plan has no weekly limit —
-  `current_weekly_remaining_percent`, `weekly_start_time`, `weekly_end_time`.
+- **The programs it runs:**
+  - `mmx quota show --output json`, locally, with a 20000ms timeout. It reads
+    `model_remains[]` and takes the first entry whose `model_name` matches
+    `/m3|flash|general/i`, else the first entry. From it the panel takes
+    `current_interval_remaining_percent`, `start_time`, `end_time`, and — unless
+    `current_weekly_status` is 3, which means the plan has no weekly limit —
+    `current_weekly_remaining_percent`, `weekly_start_time`, `weekly_end_time`.
+  - `node <staging.js> list`, locally, with a 20000ms timeout, when the "Run the command"
+    button is pressed.
+- **The files it reads:** the staging files under `~/.claude/plugins/data/*/staging/*.md`,
+  read with `fs/promises` (the `fs/promises` module is imported directly — it is not one of
+  Herdr's functions).
 - **Shared keys:** `herdr.theme` (the theme the person last chose), `herdr.usage` (the last
   plan read), `herdr.usageResets` (the windows seen, newest first, capped at 24, each
   `{start, end, at}`).
@@ -127,10 +171,11 @@ the content sits at the top of the frame.
   where it is not. The ramp is the mod's own and ignores the theme: `#3fae6a` green,
   `#d7b23a` amber, `#e2564a` red, mixed channel by channel so the whole track runs green →
   amber → red by position.
-- **Element ids** (what `herdr-app status` and layout navigation see): `herdr-theme-panel`
-  and `herdr-usage-panel` on the two roots, `theme-<name>` on each theme row
-  (`theme-atom-one-dark`, `theme-tron-blue`, `theme-tron-orange`), and `meter-<label>` on
-  each meter (`meter-5h window`, `meter-this week`).
+- **Element ids** (what `herdr-app status` and layout navigation see): `herdr-theme-panel`,
+  `herdr-usage-panel` and `herdr-lessons-panel` on the three roots, `theme-<name>` on each
+  theme row (`theme-atom-one-dark`, `theme-tron-blue`, `theme-tron-orange`), `meter-<label>`
+  on each meter (`meter-5h window`, `meter-this week`), `candidate-<id>` on each candidate
+  card and `lessons-run` on the button that runs the command.
 
 **Watch out:**
 
@@ -182,6 +227,12 @@ the content sits at the top of the frame.
 - **The layout it acts on has one mod missing:** the `pungitore-panel` block points at
   `mods/pungitore-panel`, which is in this repository. `herdr-app status` reports no
   errors.
+- **The lessons face needs the Learning Loop to be installed.** Without it the candidate
+  list is empty and the panel says "Nothing is waiting: every candidate has been promoted
+  or dismissed." — which reads as "there is nothing to do" rather than "there is nothing
+  here to read". The dock's count is the honest signal: no row, no Learning Loop.
+- **The candidate list is read at open time and never again.** A candidate promoted while
+  the popup is open stays on screen until it is closed and opened again.
 
 **Done when:**
 
@@ -204,5 +255,10 @@ the content sits at the top of the frame.
 - The meter's reset line reads **"resets 19:22 · 4h 59m left"** — the window's end in the
   person's clock and the time left — and its last line reads **"window 14:22 → 19:22"**.
 - **Esc** closes either popup; clicking a theme row closes it too.
+- Clicking the lessons row in the dock opens a 420×460 popup headed **"Lessons to review"**,
+  with the count of candidates at the right and one card per candidate showing its id, its
+  folder and the lesson.
+- Pressing **"Run the command"** in that popup prints the Learning Loop's own list below
+  the button; with the Learning Loop not installed it says so.
 - With `mmx` removed from the PATH, the usage face shows **"MiniMax M"** and an error line
   instead of the meters, and the dock's small bar reads **"No plan"**.

@@ -9,7 +9,7 @@ session. Enter sends it, Esc cancels it.
 
 **What you see:**
 
-A dialog 520px wide and 250px tall, on `theme().popover`, with 18px of padding
+A dialog 520px wide and 260px tall, on `theme().popover`, with 18px of padding
 and 10px between the rows:
 
 - **The title row.** "Send this to-do?" in 15px semibold `theme().foreground`, and
@@ -24,6 +24,11 @@ and 10px between the rows:
   to-do the box shows the placeholder "The message for the agent…".
 - **The hint.** "Enter sends it. Change the text first if it needs a better
   question." in 11px `theme().dim`.
+- **The extra line**, only when the to-do came with one: a sentence in 11px
+  `theme().muted`, under the hint. A quick to-do carries "The session refines
+  this to-do and writes it into this repository's TODO.md." — so the agent is
+  not left to guess what the to-do is for. A to-do from the repository's
+  `TODO.md` carries none, and the line is not there.
 - **The buttons**, at the right: "Cancel" — 32px tall, 14px of padding, corners
   rounded 8, a 1px `theme().input` border on `theme().raised`, in
   `theme().foreground` — and "Send", the same shape in `theme().solid` with
@@ -32,10 +37,11 @@ and 10px between the rows:
 **How it behaves:**
 
 - **The to-do arrives as a prop.** The dialog is opened with
-  `props { space, folder, name, text }`: the space's id, the folder its
-  terminals start in, the repository's name to show, and the to-do text. It is
-  put in the box whole, so the person edits the message rather than writing
-  one from nothing.
+  `props { space, folder, name, text, hint }`: the space's id, the folder its
+  terminals start in, the repository's name to show, the to-do text, and the
+  hint about what the session will do with it. The text is put in the box
+  whole, so the person edits the message rather than writing one from nothing.
+  The hint is optional: with none, no extra line is drawn.
 - **The keyboard is on the box from the start.** The input takes the focus when
   the dialog opens, and again after 600ms, in case the first attempt came too
   early. The border tells which of the two it is: `theme().accent` while it has
@@ -61,7 +67,7 @@ and 10px between the rows:
 - **The `gpui-base` controls it uses:** `InputState` (the text the box holds)
   and `Input` (the box drawn around it).
 - **Who opens it:** the Pungitore panel, with `openOverlay({ mod:
-  "pungitore-confirm", kind: "dialog", width: 520, height: 250, props: {…} })`.
+  "pungitore-confirm", kind: "dialog", width: 520, height: 260, props: {…} })`.
 
 **Watch out:**
 
@@ -89,3 +95,6 @@ and 10px between the rows:
   repeats the message.
 - Pressing Esc (or clicking Cancel) closes the dialog and starts nothing.
 - Sending an empty message closes the dialog and starts nothing.
+- A to-do opened from the quick list shows one extra line under the hint:
+  "The session refines this to-do and writes it into this repository's
+  TODO.md." A to-do opened from the repository's own list shows no such line.

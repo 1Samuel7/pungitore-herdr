@@ -1,12 +1,12 @@
 # Tabs
 
-A 42px bar across the top of the work column, to the right of the sidebar: one tab for each tab of the space in front. The active tab is filled with the space's own colour darkened 40%, so its white letters read on it; the other tabs lie flat on the bar's own background. Each tab carries the program's icon, a name (or, for an agent, the title the agent is showing right now), and a mark when an agent inside it is working, blocked or has finished; the active tab also has a small × to close it. To the right of the tabs: a "+" that opens the new-tab menu, a "Files" button that opens the side panel, and — on Linux and Windows, where Herdr draws no window buttons of its own — minimize, maximize and close. The wheel over the bar steps through the tabs, a tab can be dragged onto another to move it, and the empty parts of the bar drag the window.
+A 42px bar across the top of the work column, to the right of the sidebar: one tab for each tab of the space in front. The active tab is filled with the space's own colour darkened 40%, so its white letters read on it; the other tabs lie flat on the bar's own background. Each tab carries the program's icon, a name (or, for an agent, the title the agent is showing right now), and a mark when an agent inside it is working, blocked or has finished; the active tab also has a small × to close it. To the right of the tabs: a "+" that opens the new-tab menu, the buttons that pick the right-hand panel — "Files" and "To-dos" — and — on Linux and Windows, where Herdr draws no window buttons of its own — minimize, maximize and close. The wheel over the bar steps through the tabs, a tab can be dragged onto another to move it, and the empty parts of the bar drag the window.
 
 ![Tabs](preview.png)
 
 **What you see:**
 
-The bar is the `tabs` node of `layouts/herdr.json`: a `block` in the `work` column, 42px tall, with `window_drag: true`, between the 268px sidebar on the left and the `pungitore-panel` block on the right, sitting above the `work-body` row of panes. It spans the whole width of the work column — the panes below it are inset by the row's own 8px of padding and 8px of gap, the bar is not.
+The bar is the `tabs` node of `layouts/herdr.json`: a `block` in the `work` column, 42px tall, with `window_drag: true`, to the right of the 268px sidebar, sitting above the `work-body` row of panes and the right-hand panel column. It spans the whole width of the work column — the panes below it are inset by the row's own 8px of padding and 8px of gap, the bar is not.
 
 Left to right:
 
@@ -22,7 +22,7 @@ Left to right:
     - **idle**: nothing at all.
   - **The ×**, on the active tab only: a 12px cross (`mods/herdr-pane/close.svg`) in `theme().dim`, or white at 72% (`#ffffffb8`) on the coloured tab.
 - **The "+" button**: a 26x26 square with its corners rounded 6, a "+" in the UI font size (13px) in `theme().dim`; under the pointer it takes `theme().hover` behind and `theme().foreground` for the glyph.
-- **The panel buttons**: "Files" and, when it is enabled, "Changes". 26px tall, 8px of padding at each end, 5px between a 14px glyph and the 12px label, corners rounded 6. The glyph is `mods/files/file.svg` or `mods/changes/changes.svg`, tinted with the text. The one whose panel is open has `theme().selected` behind it and `theme().foreground` for the label; the other has `theme().chrome` and `theme().muted`. Under the pointer either takes `theme().hover`.
+- **The panel buttons**: "Files", "Changes" when it is enabled, and "To-dos". 26px tall, 8px of padding at each end, 5px between a 14px glyph and the 12px label, corners rounded 6. The glyph is `mods/files/file.svg`, `mods/changes/changes.svg` or `mods/workspace-chrome/circle-check.svg`, tinted with the text. The one whose panel is open has `theme().selected` behind it and `theme().foreground` for the label; the other has `theme().chrome` and `theme().muted`. Under the pointer either takes `theme().hover`.
 - **The window buttons**, only where Herdr draws none of its own (Linux and Windows, with `"titlebar": "none"`): three 26x26 squares with their corners rounded 6, glyphs in `theme().dim`, `theme().hover` behind under the pointer. On Windows the glyphs are the mod's own SVGs at 16px — `win-min.svg`, `win-max.svg` or `win-restore.svg`, `win-close.svg`; elsewhere they are the characters "−" and "□" and the cross from `mods/herdr-pane/close.svg` at 13px.
 
 The active tab's fill is the space's own colour, darkened 40%. The six space colours are `ansi6` `#22a99a`, `ansi3` `#e3814f`, `ansi4` `#5b8def`, `ansi5` `#8b7cf6`, `ansi2` `#3fae6a`, `ansi1` `#d9649a`; darkened 40% they are `#14655c`, `#884d2f`, `#37558f`, `#534a94`, `#266840`, `#823c5c`. A colour picked by hand (`#rrggbb`) is darkened the same way (`#e2564a` → `#88342c`). A space with no colour of its own wears the `ansi6` teal `#14655c`. That is the same shade the pane header wears, so the bar and the pane below it are the same colour; the sidebar row is a little lighter (darkened 34%, `#167066` for `ansi6`).
@@ -58,7 +58,7 @@ The active tab's fill is the space's own colour, darkened 40%. The six space col
   │   ├── sidebar-lists (column)
   │   │   ├── spaces (block, mod herdr-spaces, weight 1, min 90)
   │   │   └── agents (block, mod herdr-agents, weight 1, min 90)
-  │   ├── dock (block, mod herdr-dock, 42px)
+  │   ├── dock (block, mod herdr-dock, 70px)
   │   └── sidebar-footer (block, mod workspace-chrome, props footer, 69px)
   ├── work (column, resizable false)
   │   ├── tabs (block, mod herdr-tabs, 42px, window_drag)          ← this mod
@@ -67,9 +67,9 @@ The active tab's fill is the space's own colour, darkened 40%. The six space col
   │   │   └── panel (column, 368px, min 280, max 900, hidden)
   │   │       └── panel-body (stack, active files)
   │   │           ├── files (block, mod files)
-  │   │           └── changes (block, mod changes)
+  │   │           ├── changes (block, mod changes)
+  │   │           └── todos (block, mod pungitore-panel)
   │   └── status (block, mod workspace-status, 28px)
-  └── b037df0d… (block, mod pungitore-panel, 320px)
   ```
 
   The block carries no props: `{ "mod": "herdr-tabs" }`. The mod is told nothing by the app; everything it shows it reads from `spaces()`, `panes()`, `layout()` and shared state.
@@ -83,16 +83,17 @@ The active tab's fill is the space's own colour, darkened 40%. The six space col
 - **Commands it runs.** `tab.select {id}`, `tab.rename {id}`, `tab.move {id, index}` (index is 1-based), `tab.close {id}`, `tab.next`, `tab.prev`, `layout.select {stack, child}`, `layout.show {id}`, `layout.hide {id}`, `window.minimize`, `window.maximize`, `window.close`.
 - **Overlays it opens.** The shipped `menu` as a popup 200 wide with `props {tab: "tab", target: {id, space}}`; the shipped `new-menu` as a popup 250x512.
 - **Programs it runs.** None. It starts no timer, spawns no task, and reads no file.
-- **Its art.** `mods/herdr-tabs/win-close.svg`, `win-max.svg`, `win-min.svg`, `win-restore.svg` — 16px viewboxes, `stroke="currentColor"`, stroke-width 1, drawn at 16px; the cross, the maximize square, the minimize line and the restore two-boxes are all one pixel wide. Borrowed: `mods/workspace-chrome/spinner.svg` (a 24px arc) for the working mark, `mods/herdr-pane/close.svg` for the tab's × and for the window close button, `mods/files/file.svg` and `mods/changes/changes.svg` for the panel buttons, and the program's own icon from the app's program table (`icons/<program>.svg`).
-- **Shared state it reads.** `space.colors` (space id → a colour name like `ansi6` or a picked `#rrggbb`), the same key `herdr-spaces`, `herdr-agents`, `herdr-pane` and `herdr-look` read, so the tab, the sidebar row, the agents list and the pane header agree on a space's colour; and `workspace.panels` (the list of panel buttons to show — `["files"]` at the moment, so only "Files" appears; the shipped default is `["files", "changes"]`).
-- **Its own storage.** `localStorage["panels"]`, a JSON object of space id → the panel that space had open (`"files"`, `"changes"`, or nothing for closed).
+- **Its art.** `mods/herdr-tabs/win-close.svg`, `win-max.svg`, `win-min.svg`, `win-restore.svg` — 16px viewboxes, `stroke="currentColor"`, stroke-width 1, drawn at 16px; the cross, the maximize square, the minimize line and the restore two-boxes are all one pixel wide. Borrowed: `mods/workspace-chrome/spinner.svg` (a 24px arc) for the working mark, `mods/herdr-pane/close.svg` for the tab's × and for the window close button, `mods/files/file.svg`, `mods/changes/changes.svg` and `mods/workspace-chrome/circle-check.svg` for the panel buttons, and the program's own icon from the app's program table (`icons/<program>.svg`).
+- **Shared state it reads.** `space.colors` (space id → a colour name like `ansi6` or a picked `#rrggbb`), the same key `herdr-spaces`, `herdr-agents`, `herdr-pane` and `herdr-look` read, so the tab, the sidebar row, the agents list and the pane header agree on a space's colour; and `workspace.panels` (the list of panel buttons to show — the shipped default is `["files", "changes"]`). The to-do button is added to that list by the mod itself, so it is always there.
+- **Its own storage.** `localStorage["panels"]`, a JSON object of space id → the panel that space had open (`"files"`, `"changes"`, `"todos"`, or nothing for closed).
 
 **Watch out:**
 
 - **The shipped mod is replaced on every start; this clone is not.** Herdr rewrites its own `mods/` on start, so the shipped `tabs` comes back fresh with every update; `herdr-tabs` is the person's and survives. But nothing carries the clone forward: a new Herdr version that changes the shipped `tabs` leaves this copy behind, and a build that starts from the shipped source again gets the old look — rounded tab corners, a rounded status mark, `theme().raised` for the active tab and the assets under `mods/tabs/` and `mods/pane/`.
 - **A tab moved to the right lands one slot past the target.** The drop index is the target's position in the *old* order (`space.tabs.findIndex(...) + 1`), so dragging a tab leftwards puts it exactly where the target was, while dragging it rightwards leaves it after the target rather than on it — and dragging the last tab onto an earlier one can leave it at the end. The shipped mod behaves the same way.
 - **The panel buttons need two ids in the layout.** The mod looks for a node called `panel` and a stack called `panel-body` in the layout tree and drives them with `layout.show`, `layout.hide` and `layout.select`. This layout has both. In a layout without them the buttons are drawn but do nothing, and the commands fail.
-- **The "Changes" button is not there.** `workspace.panels` is `["files"]`, and nothing in the setup writes it, so the changes panel cannot be opened from the bar at all. Adding `"changes"` to that list brings the button back (and the panel comes with it, `changes` being the second child of the `panel-body` stack).
+- **The "Changes" button is not there unless it is asked for.** Nothing in the setup writes `workspace.panels`, so the bar shows "Files" and "To-dos"; adding `"changes"` to that shared list brings the button back (and the panel comes with it, `changes` being the second child of the `panel-body` stack).
+- **The "To-dos" button cannot be turned off.** The mod adds `"todos"` to the list of panels itself, whatever `workspace.panels` says, because the to-do panel is part of this setup and not a choice. The button is drawn even in a layout whose `panel-body` stack has no `todos` child — and then it selects a child that is not there, and the panel does not open.
 - **The mod runs commands and writes storage while it renders.** `render()` calls `syncPanel()`, which may issue `layout.show` / `layout.hide` / `layout.select` and writes `localStorage["panels"]`. The `pending` guard (one second) keeps it from looping, but a build that renders purely would lose the per-space panel memory.
 - **The panel is left alone on the very first space.** The mod skips the restore for the first space it ever sees, if that space has no stored choice: the panel is not closed for it, even though every later space with no stored choice is. From that moment on the space is recorded like any other, so the panel it happens to be showing is the one it will be remembered with.
 - **A settled tab still appears.** `tab.settle` puts a tab away on this screen, but this mod lists every tab of the space, settled ones included; nothing folds them.
@@ -103,8 +104,9 @@ The active tab's fill is the space's own colour, darkened 40%. The six space col
 - **The wheel gesture is not one notch per event on a touchpad.** A pixel-scrolling device needs 20px for the first tab and 60px for each one after, at most one every 100ms; a device that reports lines at all takes the line path, and a reported line count of zero does nothing.
 - **The names are cut off at 170px.** A long agent title is truncated with an ellipsis and there is no tooltip; the pane header shows the same title in full.
 - **The colour is darkened only if it is a 6-digit hex.** `deepen()` leaves anything else as it is, so a colour name that is neither one of the six nor a theme colour falls back to `theme().dim` and is used as it is.
-- **The layout's blocks all point at mods that exist.** `layouts/herdr.json` ends with the
-  `pungitore-panel` block, and `herdr-app status` reports no errors.
+- **The layout's blocks all point at mods that exist.** The `todos` block of the
+  `panel-body` stack points at `mods/pungitore-panel`, which is in this repository, and
+  `herdr-app status` reports no errors.
 - **The repo copy and the installed copy drift apart.** The mod runs from `~/.config/herdr-app/mods/herdr-tabs`; the copy in `Projects/Herdr/mods/herdr-tabs` is the source it was written from. They are identical now.
 
 **Done when:**
@@ -120,6 +122,7 @@ The active tab's fill is the space's own colour, darkened 40%. The six space col
 - An agent that is working shows a 12px arc turning once every 900ms; a blocked one and one that finished while you were away show a 6px square; an idle one shows nothing.
 - The wheel over the bar shows the next or previous tab, one notch at a time.
 - Clicking "Files" opens the 368px panel to the right of the panes with the files mod in it; clicking "Files" again closes it; switching to another space closes it, and switching back opens it again on the panel it was on.
+- Clicking "To-dos" opens the same panel with the to-do mod in it, headed "To-dos", and clicking it again closes the panel.
 - With more tabs than fit in the bar, the strip scrolls sideways and the tab in front is scrolled into view.
 - Switching to a space of another colour repaints the active tab in that colour.
 - On Linux, the three window buttons sit at the right end of the bar and minimize, maximize and close the window.
