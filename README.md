@@ -25,18 +25,23 @@ when you build it, and how you know it works.
 | [`herdr-look`](mods/herdr-look) | The dialog that gives a space its icon and its colour | [recipe](mods/herdr-look/RECIPE.md) |
 | [`herdr-notes`](mods/herdr-notes) | The notes and to-do dialog, global and per space | [recipe](mods/herdr-notes/RECIPE.md) |
 | [`herdr-panel`](mods/herdr-panel) | The popup that picks the theme, and the one that shows the plan's usage | [recipe](mods/herdr-panel/RECIPE.md) |
-| [`pungitore-panel`](mods/pungitore-panel) | The right-hand panel: each repository's open to-dos, mirrored from its `TODO.md` | [recipe](mods/pungitore-panel/RECIPE.md) |
+| [`pungitore-panel`](mods/pungitore-panel) | The right-hand panel: the shown space's repository and its open to-dos, mirrored from its `TODO.md` | [recipe](mods/pungitore-panel/RECIPE.md) |
 | [`pungitore-confirm`](mods/pungitore-confirm) | The dialog a to-do opens: the message can be changed before it goes out | [recipe](mods/pungitore-confirm/RECIPE.md) |
 
 Five of them — `herdr-agents`, `herdr-menu`, `herdr-pane`, `herdr-spaces` and
 `herdr-tabs` — are modified copies of mods Herdr ships, and each says so in
 its `mod.json` under `cloned_from`. See [NOTICE](NOTICE).
 
+The two `pungitore-` mods are written in the plugin marketplace repository —
+<https://github.com/1Samuel7/pungitore> — and copied here, so the copy this
+repository installs and the copy the plugin installs are the same file.
+
 ## The rest
 
 - [`layouts/herdr.json`](layouts/herdr.json) — the layout: a 268px sidebar with
-  the spaces list — the agents live under their space in it — the tab bar and
-  panes in the middle, and the 320px Pungitore panel on the right.
+  the spaces list — the agents live under their space in it — the tab bar across
+  the top of the work area, so the window buttons stay in the corner of the
+  window — the panes in the middle, and the 320px Pungitore panel on the right.
 - [`themes/`](themes) — `tron-blue` and `tron-orange`, the two of Herdr's
   themes I keep coming back to.
 - [`keys.json`](keys.json) — the key bindings.
