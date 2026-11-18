@@ -1,4 +1,5 @@
 {
-  "place": "right",
+  "place": "none",
+  "title": "To-dos",
   "size": 320
 }

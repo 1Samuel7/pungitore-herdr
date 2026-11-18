@@ -1,9 +1,11 @@
-// The panels the sidebar bar opens: the theme list and what the plan has left.
-// It opens as a popup with props { panel: "theme" | "usage" }.
+// The panels the sidebar bar opens: the theme list, what the plan has left,
+// and the candidate lessons the Learning Loop is waiting for. It opens as a
+// popup with props { panel: "theme" | "usage" | "lessons" }.
 
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { theme, themes, run, shared, setShared, props, closeOverlay, exec, checking } from "herdr";
+import * as fs from "fs/promises";
+import { theme, themes, run, shared, setShared, props, closeOverlay, exec, checking, home } from "herdr";
 
 const PICKS = [
   { name: "atom-one-dark", label: "Default", dot: "#61afef" },
@@ -117,11 +119,114 @@ function windows() {
   return Array.isArray(list) ? list : [];
 }
 
+// The candidate lessons waiting for a decision: the staging files the
+// Learning Loop writes, read as they are. The count is a fact the Learning
+// Loop publishes (ADR-0013); this reads the candidates themselves.
+async function readCandidates() {
+  const root = `${home()}/.claude/plugins/data`;
+  const out = [];
+  let plugins = [];
+  try {
+    plugins = await fs.readdir(root, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const plugin of plugins) {
+    if (!plugin.isDirectory()) continue;
+    const dir = `${root}/${plugin.name}/staging`;
+    let files = [];
+    try {
+      files = await fs.readdir(dir);
+    } catch {
+      continue;
+    }
+    for (const file of files) {
+      if (!file.endsWith(".md")) continue;
+      let text = "";
+      try {
+        text = await fs.readFile(`${dir}/${file}`, "utf8");
+      } catch {
+        continue;
+      }
+      const cwd = /^- cwd: (.*)$/m.exec(text)?.[1] ?? "";
+      const heading = /^### (C\d+) — (\S+) — ([a-z]+)(?::[^\n]*)?$/gm;
+      let match;
+      while ((match = heading.exec(text))) {
+        // Only the ones that are still waiting: the others were promoted or
+        // dismissed already.
+        if (match[3] !== "pending") continue;
+        const rest = text.slice(match.index + match[0].length);
+        const next = rest.search(/^### /m);
+        out.push({
+          id: match[1],
+          at: match[2],
+          cwd,
+          text: (next < 0 ? rest : rest.slice(0, next)).trim(),
+        });
+      }
+    }
+  }
+  return out;
+}
+
+// The Learning Loop's own script, newest version installed. The command that
+// lists the candidates is that script, run with "list".
+async function stagingScript() {
+  const root = `${home()}/.claude/plugins/cache/pungitore/pungitore-learning`;
+  try {
+    const versions = (await fs.readdir(root)).sort().reverse();
+    for (const version of versions) {
+      const path = `${root}/${version}/scripts/staging.js`;
+      try {
+        await fs.access(path);
+        return path;
+      } catch {
+        // Not this version: the next one.
+      }
+    }
+  } catch {
+    // The Learning Loop is not installed here.
+  }
+  return null;
+}
+
 export default class Panel extends View {
   init(_props, cx) {
     this.usage = shared("herdr.usage") ?? null;
+    this.candidates = null;
+    this.output = null;
+    this.running = false;
     if (checking()) return;
     if (props()?.panel === "usage") cx.spawn(async (cx) => this.refresh(cx));
+    if (props()?.panel === "lessons") cx.spawn(async (cx) => this.readLessons(cx));
+  }
+
+  // The candidates, read from the staging files.
+  async readLessons(cx) {
+    this.candidates = await readCandidates();
+    cx.notify();
+  }
+
+  // The Learning Loop's own command, run and shown here.
+  async runCommand(cx) {
+    this.running = true;
+    this.output = null;
+    cx.notify();
+    const path = await stagingScript();
+    if (!path) {
+      this.output = "The Learning Loop is not installed on this machine.";
+      this.running = false;
+      cx.notify();
+      return;
+    }
+    try {
+      const r = await exec("node", [path, "list"], { timeout: 20000 });
+      this.output = String(r.stdout ?? "").trim() || String(r.stderr ?? "").trim() || "(nothing to show)";
+    } catch (e) {
+      this.output = String(e?.message ?? e);
+    }
+    this.running = false;
+    cx.notify();
   }
 
   async refresh(cx) {
@@ -259,8 +364,98 @@ export default class Panel extends View {
       .child(body);
   }
 
+  // One candidate: where it came from, when, and what it says.
+  candidate(t, c) {
+    const text = c.text.length > 240 ? `${c.text.slice(0, 240)}…` : c.text;
+    return v_flex()
+      .id(`candidate-${c.id}`)
+      .gap(2)
+      .px(8)
+      .py(6)
+      .rounded(6)
+      .bg(t.raised)
+      .child(
+        h_flex()
+          .items_center()
+          .gap(6)
+          .child(div().flex_none().text_size(10).text_color(t.dim).child(c.id))
+          .child(div().flex_1().min_w(0).truncate().text_size(10).text_color(t.dim).child(c.cwd))
+          .child(div().flex_none().text_size(10).text_color(t.dim).child(c.at.slice(0, 10))),
+      )
+      .child(div().text_size(11).text_color(t.foreground).child(text));
+  }
+
+  // The candidates waiting for a decision, and the Learning Loop's own
+  // command, which says the same thing in more words.
+  lessonsPanel(t) {
+    const list = this.candidates;
+    const body = list === null
+      ? [div().px(4).py(6).text_size(11.5).text_color(t.dim).child("Reading the candidates…")]
+      : list.length
+        ? list.map((c) => this.candidate(t, c))
+        : [div().px(4).py(6).text_size(11.5).text_color(t.dim).child("Nothing is waiting: every candidate has been promoted or dismissed.")];
+    return v_flex()
+      .id("herdr-lessons-panel")
+      .w_full()
+      .p(10)
+      .gap(8)
+      .bg(t.popover)
+      .child(
+        h_flex()
+          .items_center()
+          .gap(8)
+          .child(div().text_size(12.5).font_semibold().text_color(t.foreground).child("Lessons to review"))
+          .child(div().flex_1())
+          .child(div().text_size(10.5).text_color(t.dim).child(`${list?.length ?? 0} waiting`)),
+      )
+      .child(
+        div()
+          .text_size(10.5)
+          .text_color(t.dim)
+          .child("Statements your sessions looked like lessons, waiting for a decision."),
+      )
+      .child(v_flex().flex_1().min_h(0).overflow_y_scrollbar().gap(6).children(body))
+      .when(this.output, (el) =>
+        el.child(
+          v_flex()
+            .max_h(150)
+            .overflow_y_scrollbar()
+            .px(8)
+            .py(6)
+            .rounded(6)
+            .bg(t.raised)
+            .child(div().text_size(10).text_color(t.dim).child(this.output)),
+        ),
+      )
+      .child(
+        h_flex()
+          .gap(8)
+          .items_center()
+          .child(
+            h_flex()
+              .id("lessons-run")
+              .h(26)
+              .px(10)
+              .items_center()
+              .rounded(6)
+              .cursor_pointer()
+              .bg(t.raised)
+              .text_color(t.foreground)
+              .hover((s) => s.opacity(0.9))
+              .on_click((_e, cx) => {
+                cx.stop_propagation();
+                this.runCommand(cx);
+              })
+              .child(this.running ? "Running…" : "Run the command"),
+          ),
+      );
+  }
+
   render(cx) {
     const t = theme();
-    return props()?.panel === "usage" ? this.usagePanel(t) : this.themePanel(t);
+    const which = props()?.panel;
+    if (which === "usage") return this.usagePanel(t);
+    if (which === "lessons") return this.lessonsPanel(t);
+    return this.themePanel(t);
   }
 }

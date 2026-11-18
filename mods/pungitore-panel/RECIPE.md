@@ -1,25 +1,31 @@
 # Pungitore panel
 
-A permanent column on the right of the window that shows the repository the
-shown space works in the way the workflow sees it: the open to-dos from its
-`TODO.md`, the branch it is on, and what the agents in it are doing. The first
-open to-do is marked as the next action, and clicking a to-do opens it in a
-dialog where it can be changed before it goes out as a session's first message.
+The **To-dos** panel: the third tab of the right-hand column, next to Files and
+Changes. It shows the to-dos of the space the window is showing, in two lists.
+
+**This repository** is the open to-dos of the repository the space works in,
+mirrored from its `TODO.md` — the truth the agent works from. **Quick to-dos**
+are the ones you type by hand, kept by Herdr and not written into the
+repository: a session refines one of them and writes the deeper to-do into
+`TODO.md`.
+
+Clicking either kind of to-do opens it in a dialog, where it can be read and
+changed before it goes out as the first message of a new session.
 
 ![Pungitore panel](preview.png)
 
 **What you see:**
 
-- A full-height column, 320px wide in this layout, on a `theme().surface`
-  background, padded 8px, with the rows 2px apart. It scrolls with a scrollbar.
-- One word at the top, "Pungitore", in 11px `theme().dim`, padded 4px left and
-  4px bottom. Next to it, "N waiting" in 11px `theme().accent`, when the
-  Learning Loop has candidate lessons waiting to be promoted.
-- One block, for the repository the shown space works in: an 8px square chip in
-  the colour the space wears in the sidebar, then the repository's name — the
-  last path segment of its folder — in 12px semibold in that same colour,
-  truncated. To its right, the branch in 10.5px `theme().dim`, when Herdr knows
-  one.
+- The panel fills the right-hand column (368px in this layout), on a
+  `theme().surface` background, padded 8px, with the blocks 2px apart. It
+  scrolls with a scrollbar.
+- One word at the top, "To-dos", in 12.5px semibold `theme().foreground`.
+- **This repository** — a heading of that name in 12.5px semibold
+  `theme().foreground`. Under it, the repository the shown space works in: an
+  8px square chip in the colour the space wears in the sidebar, then the
+  repository's name — the last path segment of its folder — in 12px semibold in
+  that same colour, truncated. To its right, the branch in 10.5px
+  `theme().dim`, when Herdr knows one.
 - Then one line per agent working in that space: a 7px round dot in the
   agent's status colour, and the status word followed by the agent's title
   (`working — Writing the eval suites`), in 11px `theme().muted`, truncated.
@@ -34,6 +40,21 @@ dialog where it can be changed before it goes out as a session's first message.
 - Under the to-dos, `+N more` in 10.5px `theme().dim` when the repository has
   more than six open ones, and `N done` in the same style when its `TODO.md`
   has ticked boxes.
+- **Quick to-dos** — a second heading, in 12.5px semibold `theme().foreground`,
+  with "yours, kept in Herdr" in 10.5px `theme().dim` at the right. Under it:
+  - one row per quick to-do, at least 28px tall, 8px of side padding, rounded
+    6px, turning `theme().hover` under the pointer. At the left a 16px box
+    holding an 11px square with 3px corners and a 1px border: empty and
+    `theme().border` when the to-do is open, filled with `theme().done` and
+    carrying an 8px check when it is done. Then the text, 11.5px,
+    `theme().foreground`, or `theme().dim` when the to-do is done. At the
+    right a 18px `✕` at half opacity, which takes the blocked colour under the
+    pointer.
+  - when there are none, the line "None yet — write one below." in 11px
+    `theme().dim`.
+  - and a field, 30px tall, rounded 8px, with a 1px border in `theme().input`
+    (in `theme().accent` while it has the focus), holding an input with the
+    placeholder "Add a to-do…".
 
 **How it behaves:**
 
@@ -59,12 +80,20 @@ dialog where it can be changed before it goes out as a session's first message.
 - **Every five seconds the panel re-reads the repository and redraws.** A
   change to a `TODO.md` shows up within five seconds, with no reload and no
   keypress.
-- **The waiting count is the Learning Loop's, read as a fact.** The Loop
-  publishes the count in a marker comment, and the panel sums the markers, so
-  the loop is visible without asking for it. A machine without the Loop
-  installed shows nothing there.
+- **Quick to-dos belong to one space.** They are written under the space's own
+  id, so two spaces have two lists, and the list follows the space the panel
+  is showing. They are kept in the shared key `herdr.notes` — the store the
+  notes dialog used, which is why what was written there before is still here.
+- **A quick to-do is a seed, not an order.** It stays in Herdr; it is not
+  written into `TODO.md`. The dialog says so when the to-do is opened: "The
+  session refines this to-do and writes it into this repository's TODO.md."
+- **The box ticks, the text opens, the `✕` drops.** Clicking the small box
+  marks the to-do done (or not); clicking the text opens it in the dialog;
+  clicking the `✕` removes it. Nothing is sent by any of them.
+- **Typing a new to-do and pressing Enter adds it to the space's list.** The
+  field takes the keyboard while it has the focus, and Esc gives it back.
 - **Clicking an open to-do does not start anything.** It opens the
-  `pungitore-confirm` dialog — a 520x250 one, over the window — with the
+  `pungitore-confirm` dialog — a 520x260 one, over the window — with the
   to-do already written in the box, the repository's name in the line above it,
   and a Send and a Cancel button. The text can be changed there; Enter sends
   it, Esc or Cancel sends nothing. Sending it starts `claude` in that space,
@@ -83,25 +112,36 @@ dialog where it can be changed before it goes out as a session's first message.
 **Built from:**
 
 - The layout's node tree. `layouts/herdr.json` is a root row with two children:
-  the 268px `sidebar` column and the `work` column. The panel is the 320px
-  block inside the work area's row, next to the terminal. It sits there, and
-  not as a third column of the root, so the tab bar spans the whole work area
-  and the window buttons it draws stay in the corner of the window.
+  the 268px `sidebar` column and the `work` column. Inside the work area's
+  row sits the `panel` column (368px, min 280, max 900, hidden), and its
+  `panel-body` is a **stack** of three blocks: `files` (Herdr's own), `changes`
+  (Herdr's own) and `todos` — this mod. The stack shows one child at a time,
+  and the tab bar's buttons choose which: "Files", "Changes" and "To-dos".
 - The mod itself: `mods/pungitore-panel/main.js`, default-exporting a class
-  extending `View`, with `mod.json` as `{"place": "right", "size": 320}`.
-- The `herdr` functions it calls: `spaces()` for the spaces and the one that
+  extending `View`, with `mod.json` as
+  `{"place": "none", "title": "To-dos", "size": 320}`. `"place": "none"`
+  because the layout places it, not the mod; the size is the fallback for a
+  layout that gives the block none.
+- The `herdr` functions it calls: `spaces()` for the spaces and the one
   is shown, `focused()` and `panes()` for the folder the work is in, `agents()`
   for the agents in the space, `readTextFile()` to read the `TODO.md`,
-  `exec("grep", …)` for the waiting count, `shared("space.colors")` for the
-  colour of the space, `openOverlay()` to open the confirmation dialog,
-  `theme()` for the colours, and `checking()` to stand down during
-  `herdr-app check`.
+  `shared("space.colors")` for the colour of the space, `shared("herdr.notes")`
+  for the quick to-dos, `setShared()` to write them, `openOverlay()` to open
+  the confirmation dialog, `theme()` for the colours, and `checking()` to stand
+  down during `herdr-app check`.
+- The gpui pieces it uses: `InputState.new({placeholder})` and `Input.new(state)`
+  from `gpui-base` for the field, a focus handle with `track_focus` for the
+  keyboard, and `cx.timer.every(5000, …)` for the poll.
 - The dialog it opens is a mod of its own: `mods/pungitore-confirm`.
-- Its art: none. Every mark is drawn — the `▶` and `·` markers are text, the
-  status dot is a 7px rounded box, the repository name is text.
+- Its art: the shipped `mods/workspace-chrome/check.svg` and `x.svg`, and the
+  drawn marks: the `▶` and `·` markers are text, the status dot is a 7px
+  rounded box, the tick box is an 11px rounded square with a 1px border.
 
 **Watch out:**
 
+- **The waiting count is not here.** The candidate lessons the Learning Loop is
+  waiting for are counted by the dock and listed in its popup — a fact about
+  this machine, not about one space. This panel is about the space in front.
 - **The repository's name is its folder's last segment.** A space called
   something else, or a repository whose folder is named something else, shows
   the folder.
@@ -119,8 +159,16 @@ dialog where it can be changed before it goes out as a session's first message.
   starts it in the space's folder. The dialog is the only confirmation; after
   it, the session is a tab like any other, and closing it is on you.
 - **The branch is Herdr's, not git's:** no branch, nothing shown.
-- **The panel is read-mostly.** It cannot edit `TODO.md`, reorder to-dos or
-  mark one done — the repository's file is the only place that changes.
+- **The panel cannot edit `TODO.md`.** It can reorder nothing and mark
+  nothing there: the repository's file is the only place that changes. A quick
+  to-do's tick is the panel's own, in Herdr's store, and says nothing about
+  the repository.
+- **The quick to-dos share the old notes store.** The key `herdr.notes` still
+  holds a `global` list, which the panel does not show: the two lines that
+  used to be seeded there ("Easier integration with 'matt's skills'" and
+  "Easier integration with 'wayfinder starmap'") are still in the store and
+  invisible. The key was kept rather than replaced so that what was written
+  there before is not lost.
 
 **Done when:**
 
@@ -143,3 +191,8 @@ dialog where it can be changed before it goes out as a session's first message.
   repository name, with the dot in that status's colour.
 - Editing the repository's `TODO.md` while the panel is open changes what the
   panel shows within five seconds, with no reload.
+- Typing a to-do in the field and pressing Enter puts it in the list under
+  "Quick to-dos"; clicking its box ticks it and clicking the `✕` takes it
+  away; switching to another space and back shows the same list.
+- Clicking a quick to-do opens the dialog with the hint "The session refines
+  this to-do and writes it into this repository's TODO.md." under the text.

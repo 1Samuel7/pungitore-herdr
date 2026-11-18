@@ -45,7 +45,7 @@
             "mod": "herdr-dock"
           },
           "size": {
-            "px": 42
+            "px": 70
           }
         },
         {
@@ -139,6 +139,13 @@
                       "content": {
                         "mod": "changes"
                       }
+                    },
+                    {
+                      "id": "todos",
+                      "type": "block",
+                      "content": {
+                        "mod": "pungitore-panel"
+                      }
                     }
                   ],
                   "active": "files"
@@ -150,16 +157,6 @@
               "min": 280,
               "max": 900,
               "hidden": true
-            },
-            {
-              "id": "pungitore-panel",
-              "type": "block",
-              "content": {
-                "mod": "pungitore-panel"
-              },
-              "size": {
-                "px": 320
-              }
             }
           ],
           "padding": 8,

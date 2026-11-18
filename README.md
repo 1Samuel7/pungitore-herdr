@@ -9,7 +9,7 @@ window looks like, what the sidebar says, and what the panels show.
 
 ## The mods
 
-Eleven mods, each with a recipe: a brief another agent could build the mod from,
+Ten mods, each with a recipe: a brief another agent could build the mod from,
 and a screenshot of what it looks like. The recipes are the point — they say
 what the mod shows, how it behaves, what it is built from, what trips you up
 when you build it, and how you know it works.
@@ -18,14 +18,13 @@ when you build it, and how you know it works.
 |---|---|---|
 | [`herdr-spaces`](mods/herdr-spaces) | The spaces list in the sidebar: every space a solid block of its own colour, grouped by machine, with the agents working in it under the space, in that colour a shade darker | [recipe](mods/herdr-spaces/RECIPE.md) |
 | [`herdr-agents`](mods/herdr-agents) | The standalone agents list — kept, but no longer in the layout: the agents live under their space | [recipe](mods/herdr-agents/RECIPE.md) |
-| [`herdr-dock`](mods/herdr-dock) | The strip at the foot of the sidebar: the theme, how much of the plan is left, the notes | [recipe](mods/herdr-dock/RECIPE.md) |
-| [`herdr-tabs`](mods/herdr-tabs) | The tab bar, the active tab in the colour of its space | [recipe](mods/herdr-tabs/RECIPE.md) |
+| [`herdr-dock`](mods/herdr-dock) | The strip at the foot of the sidebar: the theme, how much of the plan is left, and the candidate lessons waiting for a decision | [recipe](mods/herdr-dock/RECIPE.md) |
+| [`herdr-tabs`](mods/herdr-tabs) | The tab bar, the active tab in the colour of its space, and the buttons that pick the right-hand panel | [recipe](mods/herdr-tabs/RECIPE.md) |
 | [`herdr-pane`](mods/herdr-pane) | The header on every pane: the program, the folder, the agent's state | [recipe](mods/herdr-pane/RECIPE.md) |
-| [`herdr-menu`](mods/herdr-menu) | The space context menu: rename, pin, icon and colour, notes, a new session | [recipe](mods/herdr-menu/RECIPE.md) |
+| [`herdr-menu`](mods/herdr-menu) | The space context menu: rename, pin, icon and colour, a new session | [recipe](mods/herdr-menu/RECIPE.md) |
 | [`herdr-look`](mods/herdr-look) | The dialog that gives a space its icon and its colour | [recipe](mods/herdr-look/RECIPE.md) |
-| [`herdr-notes`](mods/herdr-notes) | The notes and to-do dialog, global and per space | [recipe](mods/herdr-notes/RECIPE.md) |
-| [`herdr-panel`](mods/herdr-panel) | The popup that picks the theme, and the one that shows the plan's usage | [recipe](mods/herdr-panel/RECIPE.md) |
-| [`pungitore-panel`](mods/pungitore-panel) | The right-hand panel: the shown space's repository and its open to-dos, mirrored from its `TODO.md` | [recipe](mods/pungitore-panel/RECIPE.md) |
+| [`herdr-panel`](mods/herdr-panel) | The popup that picks the theme, the one that shows the plan's usage, and the one that lists the lessons waiting for a decision | [recipe](mods/herdr-panel/RECIPE.md) |
+| [`pungitore-panel`](mods/pungitore-panel) | The to-do panel: the shown space's repository to-dos, mirrored from its `TODO.md`, and the quick to-dos typed by hand | [recipe](mods/pungitore-panel/RECIPE.md) |
 | [`pungitore-confirm`](mods/pungitore-confirm) | The dialog a to-do opens: the message can be changed before it goes out | [recipe](mods/pungitore-confirm/RECIPE.md) |
 
 Five of them — `herdr-agents`, `herdr-menu`, `herdr-pane`, `herdr-spaces` and
@@ -41,11 +40,28 @@ repository installs and the copy the plugin installs are the same file.
 - [`layouts/herdr.json`](layouts/herdr.json) — the layout: a 268px sidebar with
   the spaces list — the agents live under their space in it — the tab bar across
   the top of the work area, so the window buttons stay in the corner of the
-  window — the panes in the middle, and the 320px Pungitore panel on the right.
+  window — the panes in the middle, and the right-hand column with the Files,
+  Changes and To-dos panels, one of them at a time.
 - [`themes/`](themes) — `tron-blue` and `tron-orange`, the two of Herdr's
   themes I keep coming back to.
 - [`keys.json`](keys.json) — the key bindings.
 - [`settings.json`](settings.json) — zoom, sounds, appearance.
+
+## The to-dos
+
+The To-dos panel is the third tab of the right-hand column, and it holds two
+lists about the space in front:
+
+- **This repository** — the open to-dos of the repository the space works in,
+  read from its `TODO.md`. That file is the truth: the panel mirrors it, and
+  clicking a to-do opens it in a dialog, where it can be read and changed
+  before it goes out as the first message of a new session.
+- **Quick to-dos** — what you type by hand, kept by Herdr and not written into
+  the repository. A quick to-do is a seed: a session refines it and writes the
+  deeper to-do into the repository's `TODO.md`.
+
+The notes dialog that used to hold these is gone: the quick to-dos live in the
+panel instead, and a space's icon and colour are only in its own menu.
 
 ## Installing it
 

@@ -79,7 +79,6 @@ function items(p, git) {
         ...(git === "linked" ? [["Remove worktree", "worktree", { space: id, action: "remove" }]] : []),
         [isPinned ? "Unpin space" : "Pin space", "herdr.pin", { id }],
         ["Icon and colour…", "herdr.look", { id }],
-        ["Notes…", "herdr.notes", { id }],
         ["Claude (no permissions)", "herdr.claude", { id }],
         isPinned ? ["Close (pinned — unpin first)", "herdr.pinned.close", { id }] : ["Close", "space.close", { id }],
       ];
@@ -103,7 +102,6 @@ function items(p, git) {
 function menuIcon(command) {
   const mine = {
     "herdr.pin": "mods/workspace-chrome/pin.svg",
-    "herdr.notes": "mods/workspace-chrome/file-text.svg",
     "herdr.claude": "mods/workspace-chrome/terminal.svg",
     "herdr.pin.all": "mods/workspace-chrome/pin.svg",
     "herdr.unpin.all": "mods/workspace-chrome/pin-off.svg",
@@ -159,11 +157,6 @@ export default class Menu extends View {
     if (command === "herdr.look") {
       closeOverlay(props()?.overlay);
       openOverlay({ mod: "herdr-look", kind: "dialog", width: 430, height: 600, props: { space: args.id } });
-      return;
-    }
-    if (command === "herdr.notes") {
-      closeOverlay(props()?.overlay);
-      openOverlay({ mod: "herdr-notes", kind: "dialog", width: 480, height: 580, props: { space: args.id } });
       return;
     }
     if (command === "herdr.claude") {

@@ -809,9 +809,7 @@ export default class Spaces extends View {
               .flex_none()
               .gap(1)
               .items_center()
-              .child(this.action(`space-claude-${w.id}`, "mods/workspace-chrome/terminal.svg", "Claude in this space, without asking", () => run("tab.new", { name: "Claude", space: w.id, argv: ["claude", "--dangerously-skip-permissions"] }), true))
-              .child(this.action(`space-look-${w.id}`, "mods/herdr-dock/palette.svg", "Its icon and colour", () => openOverlay({ mod: "herdr-look", kind: "dialog", width: 430, height: 600, props: { space: w.id } }), true))
-              .child(this.action(`space-notes-${w.id}`, "mods/workspace-chrome/file-text.svg", "Notes for this space", () => openOverlay({ mod: "herdr-notes", kind: "dialog", width: 480, height: 580, props: { space: w.id } }), true)),
+              .child(this.action(`space-claude-${w.id}`, "mods/workspace-chrome/terminal.svg", "Claude in this space, without asking", () => run("tab.new", { name: "Claude", space: w.id, argv: ["claude", "--dangerously-skip-permissions"] }), true)),
           )),
       );
     // The agents of this space live under it: a child row each, so the tree

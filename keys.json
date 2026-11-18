@@ -58,7 +58,6 @@
     "ctrl-shift-z": "pane.zoom",
     "ctrl-shift-l": "layout.switch",
     "ctrl-shift-g": "herdr-dock.theme",
-    "ctrl-shift-d": "herdr-dock.notes",
     "ctrl-shift-i": "herdr-dock.pin",
     "f2": "tab.rename",
     "shift-f2": "space.rename"

@@ -1,8 +1,9 @@
 // The confirmation before a to-do is sent to an agent.
 //
-// Opened as a dialog with props { space, folder, name, text }. The to-do comes
-// in already written in the box, so it can be changed before it goes out.
-// Enter sends it, Esc cancels.
+// Opened as a dialog with props { space, folder, name, text, hint }. The to-do
+// comes in already written in the box, so it can be changed before it goes
+// out; the hint says what the session is going to do with it. Enter sends it,
+// Esc cancels.
 
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
@@ -14,6 +15,7 @@ export default class Confirm extends View {
     this.space = p.space ?? null;
     this.folder = p.folder ?? null;
     this.name = p.name ?? "";
+    this.hint = p.hint ?? "";
     this.input = InputState.new({ value: p.text ?? "", placeholder: "The message for the agent…" });
     this.input.on("submit", () => this.send());
     this.inputFocused = true;
@@ -98,6 +100,7 @@ export default class Confirm extends View {
           .text_color(t.foreground),
       )
       .child(div().text_size(11).text_color(t.dim).child("Enter sends it. Change the text first if it needs a better question."))
+      .when(this.hint, (el) => el.child(div().text_size(11).text_color(t.muted).child(this.hint)))
       .child(
         h_flex()
           .pt(8)

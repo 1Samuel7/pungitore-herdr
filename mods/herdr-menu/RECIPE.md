@@ -1,6 +1,6 @@
 # Herdr menu
 
-The menu that opens when the person right-clicks a space in the sidebar. A narrow dark panel appears next to the pointer, 230 pixels wide, holding one row per command for that one space: Rename, the worktree commands when the space is a git checkout, Pin space, Icon and colour…, Notes…, Claude (no permissions) and Close. Every row carries a small muted glyph on the left and, on the right, the global key bound to that command — "shift-f2" beside Rename. The panel takes the keyboard the moment it opens: the arrow keys walk a highlighted row, Enter runs it, Esc closes it. Nothing about agents appears here — this is a list of commands, and the only colours in it are the theme's panel, border and text colours.
+The menu that opens when the person right-clicks a space in the sidebar. A narrow dark panel appears next to the pointer, 230 pixels wide, holding one row per command for that one space: Rename, the worktree commands when the space is a git checkout, Pin space, Icon and colour…, Claude (no permissions) and Close. Every row carries a small muted glyph on the left and, on the right, the global key bound to that command — "shift-f2" beside Rename. The panel takes the keyboard the moment it opens: the arrow keys walk a highlighted row, Enter runs it, Esc closes it. Nothing about agents appears here — this is a list of commands, and the only colours in it are the theme's panel, border and text colours.
 
 ![Herdr menu](preview.png)
 
@@ -28,11 +28,10 @@ The rows of the space menu, in order, with the glyph each one draws and the hint
 | Remove worktree | `mods/workspace-chrome/git-branch.svg` | (none) |
 | Pin space *(or "Unpin space" when the space is pinned)* | `mods/workspace-chrome/pin.svg` | (none) |
 | Icon and colour… | `mods/herdr-dock/palette.svg` | (none) |
-| Notes… | `mods/workspace-chrome/file-text.svg` | (none) |
 | Claude (no permissions) | `mods/workspace-chrome/terminal.svg` | (none) |
 | Close *(or "Close (pinned — unpin first)" when the space is pinned)* | `mods/workspace-chrome/x.svg` | (none) |
 
-The worktree rows depend on the space's checkout: a space whose folder is not a git repository shows only six rows (Rename, Pin space, Icon and colour…, Notes…, Claude (no permissions), Close); a space that is a repo's own checkout shows eight (no "Remove worktree"); a space that is a linked worktree shows all nine. Six rows make a panel 205px tall, eight make 267px, nine make 298px — 31px a row, plus 9px for the separator, plus 10px of padding — so every row fits inside the 320px cap.
+The worktree rows depend on the space's checkout: a space whose folder is not a git repository shows only five rows (Rename, Pin space, Icon and colour…, Claude (no permissions), Close); a space that is a repo's own checkout shows seven (no "Remove worktree"); a space that is a linked worktree shows all eight. Five rows make a panel 174px tall, seven make 236px, eight make 267px — 31px a row, plus 9px for the separator, plus 10px of padding — so every row fits inside the 320px cap.
 
 **How it behaves:**
 
@@ -44,8 +43,7 @@ The worktree rows depend on the space's checkout: a space whose folder is not a 
 - **Rename** runs `space.rename` for that space; Herdr asks for the new name.
 - **New worktree / Open worktree / Remove worktree** open the shipped worktree mod as a dialog — 560x480 for "Open worktree", 440x260 for the other two — carrying the space and which of the three it was.
 - **Pin space / Unpin space** add or remove the space's id in the shared list of pinned spaces (the same list the sidebar reads), then close the menu.
-- **Icon and colour…** closes the menu and opens the Space look dialog (430x600) for that space.
-- **Notes…** closes the menu and opens the Notes dialog (480x580) for that space.
+- **Icon and colour…** closes the menu and opens the Space look dialog (430x600) for that space. It is the only place a space's icon and colour are changed.
 - **Claude (no permissions)** closes the menu and starts a new tab named "Claude" in that space, running `claude --dangerously-skip-permissions`.
 - **Close** closes the menu and asks Herdr to close the space; Herdr asks for confirmation first, because the command is run without `confirmed`.
 - **Close (pinned — unpin first)** does *not* close the menu: it posts a warning notification — title "This space is pinned", body "Unpin it first, then close it.", level warning — and the menu stays open with the space still there.
@@ -74,14 +72,14 @@ The worktree rows depend on the space's checkout: a space whose folder is not a 
   ```
 
   `mods/herdr-spaces/main.js` opens it from a space row's right-click: `openOverlay({mod: "herdr-menu", kind: "popup", width: 230, height: 320, props: {tab: "space", target: {id}}})`.
-- **The mod itself.** `mods/herdr-menu/main.js` (224 lines) and `mods/herdr-menu/mod.json`, which is `{ "place": "none", "cloned_from": { "name": "menu", "version": "0.1.16" } }` — `"place": "none"` means the mod appears only where another mod or a layout puts it, here only as an overlay. It is Herdr's shipped `menu` mod at version 0.1.16 with these changes: the space branch gained Pin space, Icon and colour…, Notes… and Claude (no permissions), and a pinned space's Close became "Close (pinned — unpin first)"; the general list gained "Theme: default" (still atom-one-dark), "Theme: tron blue", "Theme: tron orange", "Pin every space" and "Unpin every space", and lost the shipped "Theme: atom one dark"; and the mod now reads and writes shared state and posts notifications, which the shipped one does not.
+- **The mod itself.** `mods/herdr-menu/main.js` (224 lines) and `mods/herdr-menu/mod.json`, which is `{ "place": "none", "cloned_from": { "name": "menu", "version": "0.1.16" } }` — `"place": "none"` means the mod appears only where another mod or a layout puts it, here only as an overlay. It is Herdr's shipped `menu` mod at version 0.1.16 with these changes: the space branch gained Pin space, Icon and colour… and Claude (no permissions), and a pinned space's Close became "Close (pinned — unpin first)"; the general list gained "Theme: default" (still atom-one-dark), "Theme: tron blue", "Theme: tron orange", "Pin every space" and "Unpin every space", and lost the shipped "Theme: atom one dark"; and the mod now reads and writes shared state and posts notifications, which the shipped one does not.
 - **Props and their roles.** `props().tab` says which menu this is — "pane", "tab", "space", or anything else for the general list. `props().target` names the thing acted on: `{id}` for a space, `{id, space}` for a tab, `{pane, terminal}` for a pane. `props().overlay` is the id of this popup, the one handed to `closeOverlay`.
 - **`herdr` functions it calls.** `run(name, args)`, `props()`, `closeOverlay(id)`, `openOverlay(spec)`, `theme()`, `keys()`, `terminals()`, `spaces()`, `panes()`, `exec(cmd, args, {cwd, on})`, `shared(key)`, `setShared(key, value)`, `notify({title, body, level})`.
 - **Commands it runs.** `space.rename {id}`, `space.close {id}`, `space.new {}`, `tab.new {name, space, argv}`, `tab.rename {id}`, `tab.new {space}`, `tab.close {id}`, `pane.split {direction, pane}`, `pane.zoom {pane}`, `pane.close {pane}`, `terminal.right_click {terminal, to}`, `terminal.park {terminal}`, `app.help {}`, `app.theme {name}` with the names `atom-one-dark`, `tron-blue`, `tron-orange`, `graphite`, `ink` and `moss`.
-- **Its own pseudo-commands** — not app commands, handled inside the mod's `choose()`: `herdr.pin`, `herdr.pin.all`, `herdr.unpin.all`, `herdr.look`, `herdr.notes`, `herdr.claude`, `herdr.pinned.close`, and `worktree` (which opens a dialog instead of running a command).
-- **Overlays it opens.** `worktree` as a dialog (560x480 for "open", 440x260 for "new" and "remove") with `props {space, action}`; `herdr-look` as a dialog 430x600 with `props {space}`; `herdr-notes` as a dialog 480x580 with `props {space}`.
+- **Its own pseudo-commands** — not app commands, handled inside the mod's `choose()`: `herdr.pin`, `herdr.pin.all`, `herdr.unpin.all`, `herdr.look`, `herdr.claude`, `herdr.pinned.close`, and `worktree` (which opens a dialog instead of running a command).
+- **Overlays it opens.** `worktree` as a dialog (560x480 for "open", 440x260 for "new" and "remove") with `props {space, action}`; `herdr-look` as a dialog 430x600 with `props {space}`.
 - **Programs it runs.** `git rev-parse --show-toplevel` and `git rev-parse --path-format=absolute --git-common-dir`, each with `{cwd, on}` so a space on another machine is asked there. The first gives the checkout's root, the second says whether the space is the repo's own checkout ("main") or a linked worktree ("linked"); a folder that is not a repository gives no worktree rows at all.
-- **Its art.** `mods/workspace-chrome/`: `square-pen.svg` (rename), `git-branch.svg` (the worktree rows), `pin.svg` (pin), `pin-off.svg` (unpin every space), `file-text.svg` (notes), `terminal.svg` (Claude), `x.svg` (close), `plus.svg` (new), `settings.svg` (the theme rows), `panel-right.svg` (split), `square.svg` (zoom). `mods/herdr-dock/palette.svg` (icon and colour). Every path starts at `mods/`, so they are resolved from `~/.config/herdr-app`, not from the mod's own folder.
+- **Its art.** `mods/workspace-chrome/`: `square-pen.svg` (rename), `git-branch.svg` (the worktree rows), `pin.svg` (pin), `pin-off.svg` (unpin every space), `terminal.svg` (Claude), `x.svg` (close), `plus.svg` (new), `settings.svg` (the theme rows), `panel-right.svg` (split), `square.svg` (zoom). `mods/herdr-dock/palette.svg` (icon and colour). Every path starts at `mods/`, so they are resolved from `~/.config/herdr-app`, not from the mod's own folder.
 - **Shared state.** `herdr.pinned` (the ids of pinned spaces) and `herdr.pinNew` (true while every space is pinned) — the same keys `herdr-spaces` and `herdr-dock` read.
 
 **Watch out:**
@@ -97,18 +95,18 @@ The worktree rows depend on the space's checkout: a space whose folder is not a 
 - **The hint matches on the first argument's value**, which works only because the discriminant comes first: `pane.split {direction: "right"}` matches the binding `pane.split:right`. For a command whose first argument is an id (space.rename, tab.rename, space.close) only the bare action name can ever match.
 - **The size belongs to the caller, not to the mod.** 230x320 comes from herdr-spaces. The general list, if it were ever opened, would need 338px — 10 rows, 2 separators and the padding — more than the 320px cap, and the menu has no scrolling, so the bottom rows would be cut off.
 - **The element ids collide with the shipped menu.** This mod names its root "menu" and its rows "mi-0", "mi-1", … — the same names the shipped `menu` mod uses, so two copies open at once carry duplicate ids.
-- **The labels carry typographic punctuation:** "Icon and colour…" and "Notes…" end in an ellipsis character, and "Close (pinned — unpin first)" contains an em dash. They are not three dots and not a hyphen.
+- **The labels carry typographic punctuation:** "Icon and colour…" ends in an ellipsis character, and "Close (pinned — unpin first)" contains an em dash. They are not three dots and not a hyphen.
 - **`herdr-app check` never reaches the git check.** It loads the mod with no props, so `props().tab` is not "space" and no `exec("git", …)` runs; the check passes with no warnings. What it renders once is the general list (New space, Keybinds, the six themes, Pin every space, Unpin every space) — the only branch a check ever exercises.
 
 **Done when:**
 
 - `herdr-app check ~/.config/herdr-app/mods/herdr-menu` exits 0 with "check passed".
-- Right-clicking a space row in the sidebar opens a popup 230px wide whose rows are exactly: Rename, New worktree, Open worktree, Pin space, Icon and colour…, Notes…, Claude (no permissions), Close — plus "Remove worktree" when the space is a linked worktree — with a 1px separator above Close and every row visible inside the 320px cap.
-- In a space whose folder is not a git repository the three worktree rows are absent and six rows remain.
+- Right-clicking a space row in the sidebar opens a popup 230px wide whose rows are exactly: Rename, New worktree, Open worktree, Pin space, Icon and colour…, Claude (no permissions), Close — plus "Remove worktree" when the space is a linked worktree — with a 1px separator above Close and every row visible inside the 320px cap.
+- In a space whose folder is not a git repository the three worktree rows are absent and five rows remain.
 - Down and Up move a lighter band down and up the rows, wrapping at the ends; Enter on Rename asks for a name and the space is renamed in the sidebar; the hint beside Rename reads "shift-f2".
 - Esc closes the popup without running anything.
 - Choosing "Pin space" pins that space in the sidebar; reopening the menu on it reads "Unpin space" and "Close (pinned — unpin first)" instead of "Close".
 - Choosing "Close (pinned — unpin first)" posts the warning "This space is pinned — Unpin it first, then close it." and leaves the popup open, with the space still in the sidebar.
-- Choosing "Icon and colour…" opens the Space look dialog (430x600) with that space's name in it; "Notes…" opens the Notes dialog (480x580).
+- Choosing "Icon and colour…" opens the Space look dialog (430x600) with that space's name in it. It is the only place a space's icon and colour are changed.
 - Choosing "Claude (no permissions)" opens a new tab named "Claude" in that space, running `claude --dangerously-skip-permissions`.
-- Clicking a row with the mouse runs it just as the keyboard does: clicking "Notes…" opens the Notes dialog.
+- Clicking a row with the mouse runs it just as the keyboard does: clicking "Icon and colour…" opens the Space look dialog.
