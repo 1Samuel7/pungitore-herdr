@@ -1,10 +1,10 @@
 // A bar in the sidebar, above Settings: the theme, what the plan has left,
-// and the notes of the space in front. It sits out of the way; every button
-// opens its own panel beside it.
+// and what the Learning Loop has waiting. It sits out of the way; every
+// button opens its own panel beside it.
 
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { theme, themes, run, shared, setShared, spaces, exec, openOverlay, checking, nextCommand, notify, layout } from "herdr";
+import { theme, themes, run, shared, setShared, spaces, exec, openOverlay, checking, nextCommand, notify, layout, home } from "herdr";
 
 // The spaces that must not be closed by accident.
 const PINNED = "herdr.pinned";
@@ -17,12 +17,6 @@ const PICKS = [
   { name: "atom-one-dark", label: "Default", dot: "#61afef" },
   { name: "tron-blue", label: "Tron blue", dot: "#4dd2ff" },
   { name: "tron-orange", label: "Tron orange", dot: "#ff9f1c" },
-];
-
-// The notes the list starts with.
-const SEEDS = [
-  "Easier integration with 'matt's skills'",
-  "Easier integration with 'wayfinder starmap'",
 ];
 
 function find(node, id) {
@@ -122,19 +116,43 @@ function remember(start, end) {
   setShared(RESETS, [{ start: start ?? null, end, at: Date.now() }, ...list].slice(0, 24));
 }
 
+// How many candidate lessons the Learning Loop has waiting for a decision.
+// It publishes the count in a marker comment, so it is read as a fact rather
+// than by parsing another plugin's files: the marker is the contract, the
+// directory it lives in is an accident of layout (ADR-0013).
+async function pendingLessons() {
+  const dir = `${home()}/.claude/plugins/data`;
+  try {
+    const result = await exec(
+      "grep",
+      ["-rhoE", "--include=*.md", "<!-- pungitore-learning: pending [0-9]+ -->", dir],
+      { timeout: 5000 },
+    );
+    let total = 0;
+    for (const line of String(result.stdout || "").split("\n")) {
+      const match = /pending (\d+)/.exec(line);
+      if (match) total += Number(match[1]);
+    }
+    return total;
+  } catch {
+    // A machine without the Learning Loop installed has nothing waiting.
+    return 0;
+  }
+}
+
 export default class Dock extends View {
   init(_props, cx) {
     this.usage = shared("herdr.usage") ?? null;
+    this.lessons = 0;
     if (checking()) return;
-    this.seed(cx);
     cx.spawn(async (cx) => this.refresh(cx));
     cx.timer.every(60000, (cx) => this.refresh(cx));
-    // Keys reach this mod by its name: herdr-dock.theme, herdr-dock.notes.
+    // Keys reach this mod by its name: herdr-dock.theme, herdr-dock.lessons.
     cx.spawn(async (cx) => {
       for (;;) {
         const c = await nextCommand();
         if (c === "theme") this.cycle(cx);
-        else if (c === "notes") this.notes(cx);
+        else if (c === "lessons") this.lessonsPanel(cx);
         else if (c === "pin") this.pin(cx);
         else if (c === "pinall") this.pinAll(cx);
         else if (c === "unpinall") this.unpinAll(cx);
@@ -154,9 +172,9 @@ export default class Dock extends View {
     cx.notify();
   }
 
-  notes(cx) {
-    const space = spaces().find((s) => s.active);
-    openOverlay({ mod: "herdr-notes", kind: "dialog", width: 480, height: 580, props: { space: space?.id } });
+  // The candidates waiting for a decision, in a panel of their own.
+  lessonsPanel(cx) {
+    openOverlay({ mod: "herdr-panel", kind: "popup", width: 420, height: 460, props: { panel: "lessons" } });
     cx.notify();
   }
 
@@ -187,13 +205,8 @@ export default class Dock extends View {
     cx.notify();
   }
 
-  // The list starts with what was asked for, so it is never empty.
-  seed(cx) {
-    if (shared("herdr.notes")) return;
-    setShared("herdr.notes", { global: SEEDS.map((text, i) => ({ id: `seed-${i}`, text, done: false })), spaces: {} });
-    cx.notify();
-  }
-
+  // The plan and the candidates: both are read on a timer, and both are
+  // facts about this machine rather than about the space in front.
   async refresh(cx) {
     let next;
     try {
@@ -214,6 +227,7 @@ export default class Dock extends View {
     }
     setShared("herdr.usage", next);
     this.usage = next;
+    this.lessons = await pendingLessons();
     cx.notify();
   }
 
@@ -317,17 +331,52 @@ export default class Dock extends View {
   render(cx) {
     const t = theme();
     const usage = this.usage ?? shared("herdr.usage") ?? null;
-    const space = spaces().find((s) => s.active);
-    return h_flex()
+    const lessons = this.lessons ?? 0;
+    // What the Learning Loop is waiting for: a global fact, so it sits here
+    // with the plan, not in the to-do panel, which is about one space.
+    const lessonsRow = lessons > 0
+      ? h_flex()
+          .id("dock-lessons")
+          .w_full()
+          .h(24)
+          .px(6)
+          .gap(6)
+          .items_center()
+          .rounded(6)
+          .cursor_pointer()
+          .hover((s) => s.bg(t.hover))
+          .tooltip("Candidate lessons waiting to be promoted into your rules")
+          .on_click((_e, cx) => {
+            cx.stop_propagation();
+            this.lessonsPanel(cx);
+          })
+          .child(svg("mods/workspace-chrome/layers.svg").size(13).flex_none().text_color(t.muted))
+          .child(
+            div()
+              .flex_1()
+              .min_w(0)
+              .truncate()
+              .text_size(10.5)
+              .text_color(t.muted)
+              .child(`${lessons} lesson${lessons === 1 ? "" : "s"} to review`),
+          )
+      : null;
+    return v_flex()
       .id("herdr-dock")
       .size_full()
       .px(8)
-      .gap(6)
+      .gap(4)
       .items_center()
       .border_t(1)
       .border_color(t.border)
-      .child(this.btn("dock-theme", "palette", "Themes", () => openOverlay({ mod: "herdr-panel", kind: "popup", width: 250, height: 170, props: { panel: "theme" } }), t.muted))
-      .child(this.usageMini(t, usage))
-      .child(this.btn("dock-notes", "notes", "Notes", () => openOverlay({ mod: "herdr-notes", kind: "dialog", width: 480, height: 580, props: { space: space?.id } }), t.muted));
+      .when(lessonsRow, (el) => el.child(lessonsRow))
+      .child(
+        h_flex()
+          .w_full()
+          .gap(6)
+          .items_center()
+          .child(this.btn("dock-theme", "palette", "Themes", () => openOverlay({ mod: "herdr-panel", kind: "popup", width: 250, height: 170, props: { panel: "theme" } }), t.muted))
+          .child(this.usageMini(t, usage)),
+      );
   }
 }
